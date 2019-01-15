@@ -160,6 +160,7 @@ int main(int argc, char *argv[])
       //Subtracted calibration values
       ca_x = accRaw[0] - ca[0];
       ca_y = accRaw[1] - ca[1];
+      ca_z = accRaw[1];
       cg_x = gyrRaw[0] - cg[0];
       cg_y = gyrRaw[1] - cg[1];
       cg_z = gyrRaw[2] - cg[2];
