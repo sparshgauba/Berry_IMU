@@ -139,8 +139,10 @@ int main(int argc, char *argv[])
   detectIMU();
   enableIMU();
 
+  //Get Calibration offset
   long long *ca = calibrate_acc();
   long long *cg = calibrate_gyr();
+
   int G_raw = (int)ca[3];
   gettimeofday(&tvBegin, NULL);
 
@@ -153,6 +155,7 @@ int main(int argc, char *argv[])
       //read ACC and GYR data
       readACC(accRaw);
       readGYR(gyrRaw);
+      readMAG(magRaw);
 
       //Subtracted calibration values
       ca_x = accRaw[0] - ca[0];
@@ -162,10 +165,13 @@ int main(int argc, char *argv[])
       cg_y = gyrRaw[1] - cg[1];
       cg_z = gyrRaw[2] - cg[2];
       //Print Acc Values after Calibration
-      printf("AccX: %5d\tAccY: %5d\tAccZ: %5d\t", ca_x, ca_y, ca_z);
+      printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
 
       //Print Gyr Values after Calibration
-      printf("GyrX: %5d\tGyrY: %5d\tGyrZ: %5d\t", cg_x, cg_y, cg_z);
+      printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x, cg_y, cg_z);
+
+      //Print Mag Values after Calibration
+      printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
       
       //Convert to G values
       float acc_x = ((float)ca_x/G_raw);
