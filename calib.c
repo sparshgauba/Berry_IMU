@@ -123,13 +123,13 @@ int main(int argc, char *argv[])
   float CFangleY = 0.0;
 
   //Calibrated Acc Values with prev values for filtering;
-  int ca_x[2] = 0;
-  int ca_y[2] = 0;
-  int ca_z[2] = 0;
+  int ca_x[2] = {0};
+  int ca_y[2] = {0};
+  int ca_z[2] = {0};
   //Calibrated Gyr Values
-  int cg_x[2] = 0;
-  int cg_y[2] = 0;
-  int cg_z[2] = 0;
+  int cg_x[2] = {0};
+  int cg_y[2] = {0};
+  int cg_z[2] = {0};
 
   int startInt  = mymillis();
   struct  timeval tvBegin, tvEnd,tvDiff;
@@ -152,6 +152,14 @@ int main(int argc, char *argv[])
     {
       startInt = mymillis();
 
+      //Slide last values back
+      ca_x[1] = ca_x[0];
+      ca_y[1] = ca_y[0];
+      ca_z[1] = ca_z[0];
+      cg_x[1] = cg_x[0];
+      cg_y[1] = cg_y[0];
+      cg_z[1] = cg_z[0];
+
 
       //read ACC and GYR data
       readACC(accRaw);
@@ -159,12 +167,22 @@ int main(int argc, char *argv[])
       readMAG(magRaw);
 
       //Subtracted calibration values
-      ca_x = accRaw[0] - ca[0];
-      ca_y = accRaw[1] - ca[1];
-      ca_z = accRaw[2];
-      cg_x = gyrRaw[0] - cg[0];
-      cg_y = gyrRaw[1] - cg[1];
-      cg_z = gyrRaw[2] - cg[2];
+      ca_x[0] = accRaw[0] - ca[0];
+      ca_y[0] = accRaw[1] - ca[1];
+      ca_z[0] = accRaw[2];
+      cg_x[0] = gyrRaw[0] - cg[0];
+      cg_y[0] = gyrRaw[1] - cg[1];
+      cg_z[0] = gyrRaw[2] - cg[2];
+
+      // If new val is less than |15| apart from last, keep last value
+      // Otherwise, new val is the average of the cur and prev
+      ca_x[0] = pow(ca_x[0] - ca_x[1], 2) < 225 ? ca_x[1] : (int)(ca_x[1] + ca_x[0]) / 2;
+      ca_y[0] = pow(ca_y[0] - ca_y[1], 2) < 225 ? ca_y[1] : (int)(ca_y[1] + ca_y[0]) / 2;
+      ca_z[0] = pow(ca_z[0] - ca_z[1], 2) < 225 ? ca_z[1] : (int)(ca_z[1] + ca_z[0]) / 2;
+      cg_x[0] = pow(cg_x[0] - cg_x[1], 2) < 225 ? cg_x[1] : (int)(cg_x[1] + cg_x[0]) / 2;
+      cg_y[0] = pow(cg_y[0] - cg_y[1], 2) < 225 ? cg_y[1] : (int)(cg_y[1] + cg_y[0]) / 2;
+      cg_z[0] = pow(cg_z[0] - cg_z[1], 2) < 225 ? cg_z[1] : (int)(cg_z[1] + cg_z[0]) / 2;
+
       //Print Acc Values after Calibration
       //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
 
@@ -175,18 +193,18 @@ int main(int argc, char *argv[])
       //printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
       
       //Convert to G values
-      float acc_x = ((float)ca_x/G_raw);
-      float acc_y = ((float)ca_y/G_raw);
-      float acc_z = ((float)ca_z/G_raw);
+      float acc_x = ((float)ca_x[0]/G_raw);
+      float acc_y = ((float)ca_y[0]/G_raw);
+      float acc_z = ((float)ca_z[0]/G_raw);
 
       //Print G values
       printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_x, acc_y, acc_z);
 
 
         //Convert Gyro raw to degrees per second
-        rate_gyr_x = (float) cg_x  * G_GAIN;
-        rate_gyr_y = (float) cg_y  * G_GAIN;
-        rate_gyr_z = (float) cg_z  * G_GAIN;
+        rate_gyr_x = (float) cg_x[0]  * G_GAIN;
+        rate_gyr_y = (float) cg_y[0]  * G_GAIN;
+        rate_gyr_z = (float) cg_z[0]  * G_GAIN;
 
 
 	//PRINT GYR DEG PER SEC
@@ -194,9 +212,9 @@ int main(int argc, char *argv[])
 
 
         //Calculate the angles from the gyro
-        gyroXangle+=rate_gyr_x*DT;
-        gyroYangle+=rate_gyr_y*DT;
-        gyroZangle+=rate_gyr_z*DT;
+        //gyroXangle+=rate_gyr_x*DT;
+        //gyroYangle+=rate_gyr_y*DT;
+        //gyroZangle+=rate_gyr_z*DT;
 
 	//PRINT ANGLES BASED ON GYRO
 	//printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", gyroXangle, gyroYangle, gyroZangle);
