@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
   int  magRaw[3];
   int  gyrRaw[3];
 
-
+  //Previous states for low threshold filtering
 
   float gyroXangle = 0.0;
   float gyroYangle = 0.0;
@@ -121,14 +121,14 @@ int main(int argc, char *argv[])
   float CFangleX = 0.0;
   float CFangleY = 0.0;
 
-  //Calibrated Acc Values
-  int ca_x;
-  int ca_y;
-  int ca_z;
+  //Calibrated Acc Values with prev values for filtering;
+  int ca_x[2] = 0;
+  int ca_y[2] = 0;
+  int ca_z[2] = 0;
   //Calibrated Gyr Values
-  int cg_x;
-  int cg_y;
-  int cg_z;
+  int cg_x[2] = 0;
+  int cg_y[2] = 0;
+  int cg_z[2] = 0;
 
   int startInt  = mymillis();
   struct  timeval tvBegin, tvEnd,tvDiff;
@@ -160,18 +160,18 @@ int main(int argc, char *argv[])
       //Subtracted calibration values
       ca_x = accRaw[0] - ca[0];
       ca_y = accRaw[1] - ca[1];
-      ca_z = accRaw[1];
+      ca_z = accRaw[2];
       cg_x = gyrRaw[0] - cg[0];
       cg_y = gyrRaw[1] - cg[1];
       cg_z = gyrRaw[2] - cg[2];
       //Print Acc Values after Calibration
-      printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
+      //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
 
       //Print Gyr Values after Calibration
-      printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x, cg_y, cg_z);
+      //printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x, cg_y, cg_z);
 
       //Print Mag Values after Calibration
-      printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
+      //printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
       
       //Convert to G values
       float acc_x = ((float)ca_x/G_raw);
@@ -183,9 +183,9 @@ int main(int argc, char *argv[])
 
 
         //Convert Gyro raw to degrees per second
-        rate_gyr_x = (float) gyrRaw[0] * G_GAIN;
-        rate_gyr_y = (float) gyrRaw[1]  * G_GAIN;
-        rate_gyr_z = (float) gyrRaw[2]  * G_GAIN;
+        rate_gyr_x = (float) cg_x  * G_GAIN;
+        rate_gyr_y = (float) cg_y  * G_GAIN;
+        rate_gyr_z = (float) cg_z  * G_GAIN;
 
 
 	//PRINT GYR DEG PER SEC
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
         gyroZangle+=rate_gyr_z*DT;
 
 	//PRINT ANGLES BASED ON GYRO
-	//printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", gyroXangle, gyroYangle, gyroZangle);
+	printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", gyroXangle, gyroYangle, gyroZangle);
 	
 
         //Convert Accelerometer values to degrees
