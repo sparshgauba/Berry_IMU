@@ -220,8 +220,8 @@ int main(int argc, char *argv[])
 
 
         //Convert Accelerometer values to degrees
-        AccXangle = (float) ( atan2( ca_y, ca_z ) + M_PI ) * RAD_TO_DEG; //Roll about X axis
-        AccYangle = (float) ( atan2( ca_z, ca_x ) + M_PI ) * RAD_TO_DEG; //Pitch about Y axis
+        AccXangle = (float) ( atan2( ca_y[0], ca_z[0] ) + M_PI ) * RAD_TO_DEG; //Roll about X axis
+        AccYangle = (float) ( atan2( ca_z[0], ca_x[0] ) + M_PI ) * RAD_TO_DEG; //Pitch about Y axis
 
         //PRINT ACC BASED PITCH AND ROLL
         printf("Roll:  %5.1f\tPitch:  %5.1f\t", AccXangle, AccYangle);
