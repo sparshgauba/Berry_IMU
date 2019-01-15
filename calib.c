@@ -33,8 +33,8 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-
-
+#define THRES_A 15
+#define THRES_G 15
 
 void  INThandler(int sig)// Used to do a nice clean exit when Ctrl-C is pressed
 {
@@ -176,12 +176,12 @@ int main(int argc, char *argv[])
 
       // If new val is less than |15| apart from last, keep last value
       // Otherwise, new val is the average of the cur and prev
-      ca_x[0] = pow(ca_x[0] - ca_x[1], 2) < 225 ? ca_x[1] : (int)(ca_x[1] + ca_x[0]) / 2;
-      ca_y[0] = pow(ca_y[0] - ca_y[1], 2) < 225 ? ca_y[1] : (int)(ca_y[1] + ca_y[0]) / 2;
-      ca_z[0] = pow(ca_z[0] - ca_z[1], 2) < 225 ? ca_z[1] : (int)(ca_z[1] + ca_z[0]) / 2;
-      cg_x[0] = pow(cg_x[0] - cg_x[1], 2) < 225 ? cg_x[1] : (int)(cg_x[1] + cg_x[0]) / 2;
-      cg_y[0] = pow(cg_y[0] - cg_y[1], 2) < 225 ? cg_y[1] : (int)(cg_y[1] + cg_y[0]) / 2;
-      cg_z[0] = pow(cg_z[0] - cg_z[1], 2) < 225 ? cg_z[1] : (int)(cg_z[1] + cg_z[0]) / 2;
+      ca_x[0] = abs(ca_x[0]) < THRES_A ? 0 : (int)(ca_x[1] + ca_x[0]) / 2;
+      ca_y[0] = abs(ca_y[0]) < THRES_A ? 0 : (int)(ca_y[1] + ca_y[0]) / 2;
+      ca_z[0] = abs(ca_z[0]) < THRES_A ? 0 : (int)(ca_z[1] + ca_z[0]) / 2;
+      cg_x[0] = abs(cg_x[0]) < THRES_G ? 0 : (int)(cg_x[1] + cg_x[0]) / 2;
+      cg_y[0] = abs(cg_y[0]) < THRES_G ? 0 : (int)(cg_y[1] + cg_y[0]) / 2;
+      cg_z[0] = abs(cg_z[0]) < THRES_G ? 0 : (int)(cg_z[1] + cg_z[0]) / 2;
 
       //Print Acc Values after Calibration
       //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
