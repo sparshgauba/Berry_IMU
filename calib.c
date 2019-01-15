@@ -22,6 +22,7 @@
 #include <string.h>
 #include <time.h>
 #include "IMU.c"
+#include "MadgwickAHRS.h"
 
 
 #define DT 0.02         // [s/loop] loop period. 20ms
@@ -62,7 +63,7 @@ long long * calibrate_acc()
   ret[0] = ret[1] = ret[2] = ret[3] = 0;
   int accRaw[3];
   int start = mymillis();
-  for (int i = 0; i < 1000; i++)
+  for (int i = 0; i < 100; i++)
     {
       readACC(accRaw);
       ret[0]+=accRaw[0];
@@ -70,9 +71,9 @@ long long * calibrate_acc()
       ret[2]+=accRaw[2];
     }
   printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
-  ret[0] = ret[0]/1000;
-  ret[1] = ret[1]/1000;
-  ret[2] = ret[2]/1000;
+  ret[0] = ret[0]/100;
+  ret[1] = ret[1]/100;
+  ret[2] = ret[2]/100;
   //ret[3] is the calculated raw value that corresponds to 1 G
   ret[3] = (long long)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(ret[2],2));
   
@@ -85,7 +86,7 @@ long long *calibrate_gyr()
   ret[0] = ret[1] = ret[2] = 0;
   int gyrRaw[3];
   int start = mymillis();
-  for (int i = 0; i < 1000; i++)
+  for (int i = 0; i < 100; i++)
     {
       readGYR(gyrRaw);
       ret[0]+=gyrRaw[0];
@@ -93,9 +94,9 @@ long long *calibrate_gyr()
       ret[2]+=gyrRaw[2];
     }
   printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
-  ret[0] = ret[0]/1000;
-  ret[1] = ret[1]/1000;
-  ret[2] = ret[2]/1000;
+  ret[0] = ret[0]/100;
+  ret[1] = ret[1]/100;
+  ret[2] = ret[2]/100;
   return ret;
 }
 
@@ -179,7 +180,7 @@ int main(int argc, char *argv[])
       float acc_z = ((float)ca_z/G_raw);
 
       //Print G values
-      //printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_x, acc_y, acc_z);
+      printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_x, acc_y, acc_z);
 
 
         //Convert Gyro raw to degrees per second
@@ -189,7 +190,7 @@ int main(int argc, char *argv[])
 
 
 	//PRINT GYR DEG PER SEC
-	//printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", rate_gyr_x, rate_gyr_y, rate_gyr_z);
+	printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", rate_gyr_x, rate_gyr_y, rate_gyr_z);
 
 
         //Calculate the angles from the gyro
@@ -198,12 +199,12 @@ int main(int argc, char *argv[])
         gyroZangle+=rate_gyr_z*DT;
 
 	//PRINT ANGLES BASED ON GYRO
-	printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", gyroXangle, gyroYangle, gyroZangle);
+	//printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", gyroXangle, gyroYangle, gyroZangle);
 	
 
         //Convert Accelerometer values to degrees
-      AccXangle = (float) ( atan2( ca_y, ca_z ) + M_PI ) * RAD_TO_DEG; //Roll about X axis
-      AccYangle = (float) ( atan2( ca_z, ca_x ) + M_PI ) * RAD_TO_DEG; //Pitch about Y axis
+      //AccXangle = (float) ( atan2( ca_y, ca_z ) + M_PI ) * RAD_TO_DEG; //Roll about X axis
+      //AccYangle = (float) ( atan2( ca_z, ca_x ) + M_PI ) * RAD_TO_DEG; //Pitch about Y axis
 
       //PRINT ACC BASED PITCH AND ROLL
       //printf("Roll:  %5.1f\tPitch:  %5.1f\t", AccXangle, AccYangle);
