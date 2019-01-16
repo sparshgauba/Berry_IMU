@@ -23,7 +23,7 @@
 #include <time.h>
 #include "IMU.c"
 #include "MadgwickAHRS.h"
-
+#include <sys/time.h>
 
 #define DT 0.02         // [s/loop] loop period. 20ms
 #define AA 0.97         // complementary filter constant
