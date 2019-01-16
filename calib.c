@@ -36,6 +36,21 @@
 #define THRES_A 15
 #define THRES_G 15
 
+
+///////////////////////////////////////////////////////
+///////////////MODIFY FOR EVERY USE////////////////////
+///////////////////////////////////////////////////////
+//Mag Calibration Values
+#define magXmax 2564
+#define magYmax 2101
+#define magZmax 2512
+#define magXmin -845
+#define magYmin -1311
+#define magZmin -1745
+///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
+
 void  INThandler(int sig)// Used to do a nice clean exit when Ctrl-C is pressed
 {
     signal(sig, SIG_IGN);
@@ -57,6 +72,8 @@ int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval 
     return (diff<0);
 }
 
+
+// Returns the offets for raw acc values
 long long * calibrate_acc()
 {
     long long *ret = malloc(4*sizeof(long long));
@@ -79,6 +96,8 @@ long long * calibrate_acc()
     return ret;
 }
 
+
+// Returns offests for raw gyr values
 long long *calibrate_gyr()
 {
     long long *ret = malloc(3*sizeof(long long));
@@ -101,37 +120,34 @@ long long *calibrate_gyr()
 
 int main(int argc, char *argv[])
 {
-
-
-    float rate_gyr_y = 0.0;   // [deg/s]
-    float rate_gyr_x = 0.0;   // [deg/s]
-    float rate_gyr_z = 0.0;   // [deg/s]
-
+    //Raw sensor values
     int  accRaw[3];
     int  magRaw[3];
     int  gyrRaw[3];
 
-    //Previous states for low threshold filtering
 
-    float gyroXangle = 0.0;
-    float gyroYangle = 0.0;
-    float gyroZangle = 0.0;
-    float AccYangle = 0.0;
-    float AccXangle = 0.0;
-    float CFangleX = 0.0;
-    float CFangleY = 0.0;
-
-    //Calibrated Acc Values with prev values for filtering;
+     //Calibrated Acc Values with prev values for filtering;
     int ca_x[2] = {0};
     int ca_y[2] = {0};
     int ca_z[2] = {0};
+
     //Calibrated Gyr Values
     int cg_x[2] = {0};
     int cg_y[2] = {0};
     int cg_z[2] = {0};
 
+
+    //Values to send to MadgwickAHRS
+    float gyr_rate_rad[3] = {0}; // Converted to Radians per second
+    float acc_G[3] = {0}; // Converted to G
+    float scaledMag[3] = {0}; //After hard iron and soft iron calibration
+
+
     int startInt  = mymillis();
     struct  timeval tvBegin, tvEnd,tvDiff;
+
+
+
 
 
     signal(SIGINT, INThandler);
@@ -182,80 +198,45 @@ int main(int argc, char *argv[])
         cg_y[0] = abs(cg_y[0]) < THRES_G ? 0 : (int)(cg_y[1] + cg_y[0]) / 2;
         cg_z[0] = abs(cg_z[0]) < THRES_G ? 0 : (int)(cg_z[1] + cg_z[0]) / 2;
 
+        //Apply hard iron calibration
+        magRaw[0] -= (magXmin + magXmax) /2 ;
+        magRaw[1] -= (magYmin + magYmax) /2 ;
+        magRaw[2] -= (magZmin + magZmax) /2 ;
+
+        //Apply soft iron calibration
+        scaledMag[0]  = (float)(magRaw[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
+        scaledMag[1]  = (float)(magRaw[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
+        scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
+
+        //Convert to G values
+        float acc_G[0] = ((float)ca_x[0]/G_raw);
+        float acc_G[1] = ((float)ca_y[0]/G_raw);
+        float acc_G[2] = ((float)ca_z[0]/G_raw);
+
+        //Convert Gyro raw to RADIANS per second
+        gyr_rate_rad[0] = (float) cg_x[0]  * G_GAIN * M_PI / 180;
+        gyr_rate_rad[1] = (float) cg_y[0]  * G_GAIN * M_PI / 180;
+        gyr_rate_rad[2] = (float) cg_z[0]  * G_GAIN * M_PI / 180;
+
         //Print Acc Values after Calibration
         //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
 
         //Print Gyr Values after Calibration
         //printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x, cg_y, cg_z);
 
-        //Print Mag Values after Calibration
+        //Print Raw Mag Values
         printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
 
-        //Convert to G values
-        float acc_x = ((float)ca_x[0]/G_raw);
-        float acc_y = ((float)ca_y[0]/G_raw);
-        float acc_z = ((float)ca_z[0]/G_raw);
-
         //Print G values
-        //printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_x, acc_y, acc_z);
-
-
-        //Convert Gyro raw to degrees per second
-        rate_gyr_x = (float) cg_x[0]  * G_GAIN;
-        rate_gyr_y = (float) cg_y[0]  * G_GAIN;
-        rate_gyr_z = (float) cg_z[0]  * G_GAIN;
-
+        printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_G[0], acc_G[1], acc_G[2]);
 
         //PRINT GYR DEG PER SEC
-        //printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", rate_gyr_x, rate_gyr_y, rate_gyr_z);
+        printf("GyrX: %5.3f\tGyrY: %5.3f\tGyrZ: %5.3f\t", gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2]);
 
 
-        //Calculate the angles from the gyro
-        //gyroXangle+=rate_gyr_x*DT;
-        //gyroYangle+=rate_gyr_y*DT;
-        //gyroZangle+=rate_gyr_z*DT;
-
-        //PRINT ANGLES BASED ON GYRO
-        //printf("GyrX: %10.5f\tGyrY: %10.5f\tGyrZ: %10.5f\t", gyroXangle, gyroYangle, gyroZangle);
 
 
-        //Convert Accelerometer values to degrees
-        AccXangle = (float) ( atan2( ca_y[0], ca_z[0] ) + M_PI ) * RAD_TO_DEG; //Roll about X axis
-        AccYangle = (float) ( atan2( ca_z[0], ca_x[0] ) + M_PI ) * RAD_TO_DEG; //Pitch about Y axis
 
-        //PRINT ACC BASED PITCH AND ROLL
-        printf("Roll:  %5.1f\tPitch:  %5.1f\t", AccXangle, AccYangle);
-
-        //Change the rotation value of the accelerometer to -/+ 180 and move the Y axis '0' point to up.
-        //Two different pieces of code are used depending on how your IMU is mounted.
-        //If IMU is upside down
-        /*
-        if (AccXangle >180)
-            AccXangle -= (float)360.0;
-
-        AccYangle-=90;
-        if (AccYangle >180)
-            AccYangle -= (float)360.0;
-        */
-
-        //If IMU is up the correct way, use these lines
-        /**********************************************************
-        AccXangle -= (float)180.0;
-        if (AccYangle > 90)
-            AccYangle -= (float)270;
-        else
-            AccYangle += (float)90;
-
-
-        //Complementary filter used to combine the accelerometer and gyro values.
-        CFangleX=AA*(CFangleX+rate_gyr_x*DT) +(1 - AA) * AccXangle;
-        CFangleY=AA*(CFangleY+rate_gyr_y*DT) +(1 - AA) * AccYangle;
-
-
-        printf ("   GyroX  %7.3f \t AccXangle \e[m %7.3f \t \033[22;31mCFangleX %7.3f\033[0m\t 
-                    GyroY  %7.3f \t AccYangle %7.3f \t \033[22;36mCFangleY %7.3f\t\033[0m\n",
-                gyroXangle,AccXangle,CFangleX,gyroYangle,AccYangle,CFangleY);
-        ***********************************************************/
         //Each loop should be at least 20ms.
         while(mymillis() - startInt < (DT*1000))
         {
