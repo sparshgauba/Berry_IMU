@@ -209,9 +209,9 @@ int main(int argc, char *argv[])
         scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
 
         //Convert to G values
-        float acc_G[0] = ((float)ca_x[0]/G_raw);
-        float acc_G[1] = ((float)ca_y[0]/G_raw);
-        float acc_G[2] = ((float)ca_z[0]/G_raw);
+        acc_G[0] = ((float)ca_x[0]/G_raw);
+        acc_G[1] = ((float)ca_y[0]/G_raw);
+        acc_G[2] = ((float)ca_z[0]/G_raw);
 
         //Convert Gyro raw to RADIANS per second
         gyr_rate_rad[0] = (float) cg_x[0]  * G_GAIN * M_PI / 180;
