@@ -21,14 +21,15 @@
 //---------------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreq	512.0f		// sample frequency in Hz
-#define betaDef		0.1f		// 2 * proportional gain
+#define sampleFreq	50.0f		// sample frequency in Hz
+#define betaDef		0.0f		// 2 * proportional gain
 
 //---------------------------------------------------------------------------------------------------
 // Variable definitions
 
 volatile float beta = betaDef;								// 2 * proportional gain (Kp)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	// quaternion of sensor frame relative to auxiliary frame
+volatile float madAngles[3] = {0.0f}; // Roll[0] Pitch[1] Yaw[2]
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -59,7 +60,7 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	qDot2 = 0.5f * (q0 * gx + q2 * gz - q3 * gy);
 	qDot3 = 0.5f * (q0 * gy - q1 * gz + q3 * gx);
 	qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
-
+	/*
 	// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 
@@ -122,7 +123,7 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 		qDot3 -= beta * s2;
 		qDot4 -= beta * s3;
 	}
-
+	*/
 	// Integrate rate of change of quaternion to yield quaternion
 	q0 += qDot1 * (1.0f / sampleFreq);
 	q1 += qDot2 * (1.0f / sampleFreq);
@@ -135,6 +136,9 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+
+	// Update angles
+	computeAngles();
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -206,6 +210,9 @@ void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, flo
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+
+	// Update angles
+	computeAngles();
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -220,6 +227,14 @@ float invSqrt(float x) {
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
 	return y;
+}
+
+//-------------------------------------------------------------------------------------------
+void computeAngles()
+{
+	madAngles[0] = atan2f(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
+	madAngles[1] = asinf(-2.0f * (q1*q3 - q0*q2));
+	madAngles[2] = atan2f(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
 }
 
 //====================================================================================================

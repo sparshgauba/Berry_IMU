@@ -24,8 +24,9 @@
 #include "IMU.c"
 #include "MadgwickAHRS.h"
 #include <sys/time.h>
+#include "MahonyAHRS.h"
 
-#define DT 0.02         // [s/loop] loop period. 20ms
+#define DT 0.02         // [s/loop] loop period in ms
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -33,20 +34,20 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 15
-#define THRES_G 15
+#define THRES_A 10
+#define THRES_G 10
 
 
 ///////////////////////////////////////////////////////
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 2564
-#define magYmax 2101
-#define magZmax 2512
-#define magXmin -845
-#define magYmin -1311
-#define magZmin -1745
+#define magXmax 2008
+#define magYmax 1493
+#define magZmax 886
+#define magXmin -374
+#define magYmin -707
+#define magZmin -1243
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -189,7 +190,7 @@ int main(int argc, char *argv[])
         cg_y[0] = gyrRaw[1] - cg[1];
         cg_z[0] = gyrRaw[2] - cg[2];
 
-        // If new val is less than |15| apart from last, keep last value
+        // If new val is less than THRES apart from last, keep last value
         // Otherwise, new val is the average of the cur and prev
         ca_x[0] = abs(ca_x[0]) < THRES_A ? 0 : (int)(ca_x[1] + ca_x[0]) / 2;
         ca_y[0] = abs(ca_y[0]) < THRES_A ? 0 : (int)(ca_y[1] + ca_y[0]) / 2;
@@ -225,15 +226,25 @@ int main(int argc, char *argv[])
         //printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x, cg_y, cg_z);
 
         //Print Raw Mag Values
-        printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
+        //printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
 
         //Print G values
-        printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_G[0], acc_G[1], acc_G[2]);
+        //printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_G[0], acc_G[1], acc_G[2]);
 
         //PRINT GYR DEG PER SEC
-        printf("GyrX: %5.3f\tGyrY: %5.3f\tGyrZ: %5.3f\t", gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2]);
+        //printf("GyrX: %5.3f\tGyrY: %5.3f\tGyrZ: %5.3f\t", gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2]);
 
 
+
+	//Madgwick Filter with magneto fused
+	MadgwickAHRSupdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
+
+	//Without magneto
+	//MadgwickAHRSupdateIMU(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
+
+
+	//printf("q0: %5.3f   q1: %5.3f   q2: %5.3f   q3: %5.3f\t", q0, q1, q2, q3); 
+	printf("Roll: %8.3f    Pitch: %8.3f    Yaw %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
 
 
 
