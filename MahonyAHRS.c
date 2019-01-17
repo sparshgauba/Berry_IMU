@@ -22,7 +22,7 @@
 
 #define sampleFreq	50.0f			// sample frequency in Hz
 #define twoKpDef	(2.0f * 0.5f)	// 2 * proportional gain
-#define twoKiDef	(2.0f * 0.0f)	// 2 * integral gain
+#define twoKiDef	(2.0f * 0.1f)	// 2 * integral gain
 
 //---------------------------------------------------------------------------------------------------
 // Variable definitions
@@ -31,6 +31,7 @@ volatile float twoKp = twoKpDef;											// 2 * proportional gain (Kp)
 volatile float twoKi = twoKiDef;											// 2 * integral gain (Ki)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;					// quaternion of sensor frame relative to auxiliary frame
 volatile float integralFBx = 0.0f,  integralFBy = 0.0f, integralFBz = 0.0f;	// integral error terms scaled by Ki
+volatile float madAngles[3] = {0.0f}; // Roll[0] Pitch[1] Yaw[2]
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -225,6 +226,13 @@ float invSqrt(float x) {
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
 	return y;
+}
+
+void computeAngles()
+{
+	madAngles[0] = atan2f(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
+	madAngles[1] = asinf(-2.0f * (q1*q3 - q0*q2));
+	madAngles[2] = atan2f(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
 }
 
 //====================================================================================================
