@@ -206,18 +206,18 @@ void enableIMU()
 
 		// Enable Gyro
 		writeGyrReg(LSM9DS0_CTRL_REG1_G, 0b00001111); // Normal power mode, all axes enabled
-		writeGyrReg(LSM9DS0_CTRL_REG4_G, 0b00110000); // Continuos update, 2000 dps full scale
+		writeGyrReg(LSM9DS0_CTRL_REG4_G, 0b00110000); // Continuos update, 500 dps full scale
 	}
 
 	if (LSM9DS1){//For BerryIMUv2
 		// Enable the gyroscope
 		writeGyrReg(LSM9DS1_CTRL_REG4,0b00111000);      // z, y, x axis enabled for gyro
-		writeGyrReg(LSM9DS1_CTRL_REG1_G,0b10111000);    // Gyro ODR = 476Hz, 2000 dps
+		writeGyrReg(LSM9DS1_CTRL_REG1_G,0b11010000);    // Gyro ODR = 952Hz, 2000 dps
 		writeGyrReg(LSM9DS1_ORIENT_CFG_G,0b10111000);   // Swap orientation 
 
 		// Enable the accelerometer
 		writeAccReg(LSM9DS1_CTRL_REG5_XL,0b00111000);   // z, y, x axis enabled for accelerometer
-		writeAccReg(LSM9DS1_CTRL_REG6_XL,0b00101000);   // +/- 16g
+		writeAccReg(LSM9DS1_CTRL_REG6_XL,0b11000000);   // +/- 16g
 
 		//Enable the magnetometer
 		writeMagReg(LSM9DS1_CTRL_REG1_M, 0b10011100);   // Temp compensation enabled,Low power mode mode,80Hz ODR
