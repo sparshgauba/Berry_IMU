@@ -34,8 +34,8 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 10
-#define THRES_G 10
+#define THRES_A 30
+#define THRES_G 30
 
 
 ///////////////////////////////////////////////////////
@@ -51,6 +51,14 @@
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
+
+
+int accOff[4];
+int gyrOff[3];
+int accRaw[3];
+int gyrRaw[3];
+int magRaw[3];
+
 
 void  INThandler(int sig)// Used to do a nice clean exit when Ctrl-C is pressed
 {
@@ -75,7 +83,7 @@ int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval 
 
 
 // Returns the offets for raw acc values
-long long * calibrate_acc()
+void calibrate_acc()
 {
     long long *ret = malloc(4*sizeof(long long));
     ret[0] = ret[1] = ret[2] = ret[3] = 0;
@@ -89,17 +97,15 @@ long long * calibrate_acc()
         ret[2]+=accRaw[2];
     }
     printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
-    ret[0] = ret[0]/100;
-    ret[1] = ret[1]/100;
-    ret[2] = ret[2]/100;
+    accOff[0] = (int)(ret[0]/100);
+    accOff[1] = (int)(ret[1]/100);
+    accOff[2] = (int)(ret[2]/100);
     //ret[3] is the calculated raw value that corresponds to 1 G
-    ret[3] = (long long)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(ret[2],2));
-    return ret;
+    accOff[3] = (long long)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(ret[2],2));
 }
 
-
 // Returns offests for raw gyr values
-long long *calibrate_gyr()
+void calibrate_gyr(int gyr[])
 {
     long long *ret = malloc(3*sizeof(long long));
     ret[0] = ret[1] = ret[2] = 0;
@@ -113,29 +119,79 @@ long long *calibrate_gyr()
         ret[2]+=gyrRaw[2];
     }
     printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
-    ret[0] = ret[0]/100;
-    ret[1] = ret[1]/100;
-    ret[2] = ret[2]/100;
-    return ret;
+    gyrOff[0] = (int)(ret[0]/100);
+    gyrOff[1] = (int)(ret[1]/100);
+    gyrOff[2] = (int)(ret[2]/100);
+
 }
+
+
+
+
+
+void getACC(int acc[], uint n)
+{
+    acc[0] = acc[1] = acc[2] = 0;
+    for (int i = 0; i < n; i++)
+    {
+      readACC(accRaw);
+      acc[0] += accRaw[0];
+      acc[1] += accRaw[1];
+      acc[2] += accRaw[2];
+      //usleep(5000);                                                                                                                                         
+    }
+    acc[0]/=n;
+    acc[1]/=n;
+    acc[2]/=n;
+    acc[0]-=accOff[0];
+    acc[1]-=accOff[1];
+    acc[2]-=accOff[2];
+}
+
+void getGYR(int gyr[], uint n)
+{
+    gyr[0] = gyr[1] = gyr[2] = 0;
+    for (int i = 0; i < n; i++)
+    {
+      readGYR(gyrRaw);
+      gyr[0] += gyrRaw[0];
+      gyr[1] += gyrRaw[1];
+      gyr[2] += gyrRaw[2];
+      //usleep(5000);                                                                                                                                         
+    }
+    gyr[0]/=n;
+    gyr[1]/=n;
+    gyr[2]/=n;
+    gyr[0]-=gyrOff[0];
+    gyr[1]-=gyrOff[1];
+    gyr[2]-=gyrOff[2];
+}
+
+void getMAG(int mag[], uint n)
+{
+    mag[0] = mag[1] = mag[2] = 0;
+    for (int i = 0; i < n; i++)
+    {
+      readMAG(magRaw);
+      mag[0] += magRaw[0];
+      mag[1] += magRaw[1];
+      mag[2] += magRaw[2];
+      //usleep(5000);                                                                                                                                         
+    }
+    mag[0]/=n;
+    mag[1]/=n;
+    mag[2]/=n;
+}
+
+
+
 
 int main(int argc, char *argv[])
 {
+    int acc[3];
+    int gyr[3];
+    int mag[3];
     //Raw sensor values
-    int  accRaw[3];
-    int  magRaw[3];
-    int  gyrRaw[3];
-
-
-     //Calibrated Acc Values with prev values for filtering;
-    int ca_x[2] = {0};
-    int ca_y[2] = {0};
-    int ca_z[2] = {0};
-
-    //Calibrated Gyr Values
-    int cg_x[2] = {0};
-    int cg_y[2] = {0};
-    int cg_z[2] = {0};
 
 
     //Values to send to MadgwickAHRS
@@ -144,12 +200,9 @@ int main(int argc, char *argv[])
     float scaledMag[3] = {0}; //After hard iron and soft iron calibration
 
 
+
     int startInt  = mymillis();
     struct  timeval tvBegin, tvEnd,tvDiff;
-
-
-
-
 
     signal(SIGINT, INThandler);
 
@@ -157,10 +210,10 @@ int main(int argc, char *argv[])
     enableIMU();
 
     //Get Calibration offset
-    long long *ca = calibrate_acc();
-    long long *cg = calibrate_gyr();
+    calibrate_acc(accOff);
+    calibrate_gyr(gyrOff);
+    float G_raw = accOff[4];
 
-    int G_raw = (int)ca[3];
     gettimeofday(&tvBegin, NULL);
 
 
@@ -169,55 +222,31 @@ int main(int argc, char *argv[])
         startInt = mymillis();
 
         //Slide last values back
-        ca_x[1] = ca_x[0];
-        ca_y[1] = ca_y[0];
-        ca_z[1] = ca_z[0];
-        cg_x[1] = cg_x[0];
-        cg_y[1] = cg_y[0];
-        cg_z[1] = cg_z[0];
-
-
         //read ACC and GYR data
-        readACC(accRaw);
-        readGYR(gyrRaw);
-        readMAG(magRaw);
 
-        //Subtracted calibration values
-        ca_x[0] = accRaw[0] - ca[0];
-        ca_y[0] = accRaw[1] - ca[1];
-        ca_z[0] = accRaw[2];
-        cg_x[0] = gyrRaw[0] - cg[0];
-        cg_y[0] = gyrRaw[1] - cg[1];
-        cg_z[0] = gyrRaw[2] - cg[2];
-
-        // If new val is less than THRES apart from last, keep last value
-        // Otherwise, new val is the average of the cur and prev
-        ca_x[0] = abs(ca_x[0]) < THRES_A ? 0 : (int)(ca_x[1] + ca_x[0]) / 2;
-        ca_y[0] = abs(ca_y[0]) < THRES_A ? 0 : (int)(ca_y[1] + ca_y[0]) / 2;
-        ca_z[0] = abs(ca_z[0]) < THRES_A ? 0 : (int)(ca_z[1] + ca_z[0]) / 2;
-        cg_x[0] = abs(cg_x[0]) < THRES_G ? 0 : (int)(cg_x[1] + cg_x[0]) / 2;
-        cg_y[0] = abs(cg_y[0]) < THRES_G ? 0 : (int)(cg_y[1] + cg_y[0]) / 2;
-        cg_z[0] = abs(cg_z[0]) < THRES_G ? 0 : (int)(cg_z[1] + cg_z[0]) / 2;
+        getACC(acc,5);
+        getGYR(gyr,5);
+        getMAG(mag,5);
 
         //Apply hard iron calibration
-        magRaw[0] -= (magXmin + magXmax) /2 ;
-        magRaw[1] -= (magYmin + magYmax) /2 ;
-        magRaw[2] -= (magZmin + magZmax) /2 ;
+        mag[0] -= (magXmin + magXmax) /2 ;
+        mag[1] -= (magYmin + magYmax) /2 ;
+        mag[2] -= (magZmin + magZmax) /2 ;
 
         //Apply soft iron calibration
-        scaledMag[0]  = (float)(magRaw[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
-        scaledMag[1]  = (float)(magRaw[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
-        scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
+        scaledMag[0]  = (float)(mag[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
+        scaledMag[1]  = (float)(mag[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
+        scaledMag[2]  = (float)(mag[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
 
         //Convert to G values
-        acc_G[0] = ((float)ca_x[0]/G_raw);
-        acc_G[1] = ((float)ca_y[0]/G_raw);
-        acc_G[2] = ((float)ca_z[0]/G_raw);
+        acc_G[0] = ((float)acc[0]/G_raw);
+        acc_G[1] = ((float)acc[0]/G_raw);
+        acc_G[2] = ((float)acc[0]/G_raw);
 
         //Convert Gyro raw to RADIANS per second
-        gyr_rate_rad[0] = (float) cg_x[0]  * G_GAIN * M_PI / 180;
-        gyr_rate_rad[1] = (float) cg_y[0]  * G_GAIN * M_PI / 180;
-        gyr_rate_rad[2] = (float) cg_z[0]  * G_GAIN * M_PI / 180;
+        gyr_rate_rad[0] = (float) gyr[0]  * G_GAIN * M_PI / 180;
+        gyr_rate_rad[1] = (float) gyr[0]  * G_GAIN * M_PI / 180;
+        gyr_rate_rad[2] = (float) gyr[0]  * G_GAIN * M_PI / 180;
 
         //Print Acc Values after Calibration
         //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
