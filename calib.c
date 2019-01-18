@@ -34,8 +34,8 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 10
-#define THRES_G 10
+#define THRES_A 50
+#define THRES_G 50
 
 
 ///////////////////////////////////////////////////////
@@ -238,12 +238,12 @@ int main(int argc, char *argv[])
 
 	//Madgwick Filter with magneto fused
 	//MadgwickAHRSupdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
-    //MahonyAHRSupdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
+        //MahonyAHRSupdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
 
 	//Without magneto
 	//MadgwickAHRSupdateIMU(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
-    MahonyAHRSupdateIMU(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
-
+        MahonyAHRSupdateIMU(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
+	computeAngles();
 
 	//printf("q0: %5.3f   q1: %5.3f   q2: %5.3f   q3: %5.3f\t", q0, q1, q2, q3); 
 	printf("Roll: %8.3f    Pitch: %8.3f    Yaw %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
