@@ -30,7 +30,7 @@
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
-#define G_GAIN 0.017     // [deg/s/LSB]
+#define G_GAIN 0.070     // [deg/s/LSB]
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
