@@ -26,7 +26,7 @@
 #include <sys/time.h>
 #include "MahonyAHRS.h"
 
-#define DT 0.02         // [s/loop] loop period in ms
+#define DT 0.006         // [s/loop] loop period in ms
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -34,8 +34,8 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 50
-#define THRES_G 50
+#define THRES_A 10
+#define THRES_G 10
 
 
 ///////////////////////////////////////////////////////
@@ -220,10 +220,10 @@ int main(int argc, char *argv[])
         gyr_rate_rad[2] = (float) cg_z[0]  * G_GAIN * M_PI / 180;
 
         //Print Acc Values after Calibration
-        //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x, ca_y, ca_z);
+        //printf("AccX: %5d\tAccY: %5d\tAccZ: %5d\t", ca_x[0], ca_y[0], ca_z[0]);
 
         //Print Gyr Values after Calibration
-        //printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x, cg_y, cg_z);
+        //printf("GyrX: %5d\tGyrY: %5d\tGyrZ: %5d\t", cg_x[0], cg_y[0], cg_z[0]);
 
         //Print Raw Mag Values
         //printf("MagX: %4d\tMagY: %4d\tMagZ: %4d\t", magRaw[0], magRaw[1], magRaw[2]);
