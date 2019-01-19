@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 
-#define DT 0.005         // [s/loop] loop period in ms
+#define DT 0.02         // [s/loop] loop period in ms
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -22,7 +22,7 @@
 #define THRES_G 10
 
 // System constants
-#define deltat 0.005f // sampling period in seconds (shown as 20 ms)
+#define deltat 0.02f // sampling period in seconds (shown as 20 ms)
 #define gyroMeasError 3.14159265358979f * (5.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
 // Global system variables
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
       cg_y[0] = (((gyrRaw[1]-(int)cg[1]) + cg_y[1])/2);
       cg_z[0] = (((gyrRaw[2]-(int)cg[2]) + cg_z[1])/2);
 
-      //Apply hard iron calibration                                                                                                                         
+      //Apply hard iron calibration
         magRaw[0] -= (magXmin + magXmax) /2 ;
         magRaw[1] -= (magYmin + magYmax) /2 ;
         magRaw[2] -= (magZmin + magZmax) /2 ;
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
       gyr_rate_rad[1] = (float)cg_y[0]  * G_GAIN * M_PI / 180.0f;
       gyr_rate_rad[2] = (float)cg_z[0]  * G_GAIN * M_PI / 180.0f;
 
-      //Apply soft iron calibration                                                                                                                         
+      //Apply soft iron calibration
         scaledMag[0]  = (float)(magRaw[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
         scaledMag[1]  = (float)(magRaw[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
         scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
@@ -166,10 +166,10 @@ int main(int argc, char *argv[])
 
       //printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_G[0], acc_G[1], acc_G[2]);
 
-      //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
-      filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
+      filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
+      //filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
       computeAngles();
-        
+
       printf("Roll: %5.2f\t Pitch: %5.2f\t Yaw:Z %5.2f", madAngles[0], madAngles[1], madAngles[2]);
 
       //Each loop should be at least 20ms.
@@ -318,6 +318,7 @@ void filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a
   SEq_4 /= norm;
 }
 
+/*
 void filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z)
 {
     // local system variables
@@ -444,6 +445,7 @@ void filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, flo
     b_x = sqrt((h_x * h_x) + (h_y * h_y));
     b_z = h_z;
 }
+*/
 
 
 void computeAngles()
