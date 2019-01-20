@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 
-#define DT 0.02         // [s/loop] loop period in ms
+#define DT 0.004         // [s/loop] loop period in ms
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -22,9 +22,11 @@
 #define THRES_G 10
 
 // System constants
-#define deltat 0.02f // sampling period in seconds (shown as 20 ms)
+#define deltat 0.004f // sampling period in seconds (shown as 20 ms)
 #define gyroMeasError 3.14159265358979f * (5.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
+#define gyroMeasDrift 3.14159265358979f * (0.02f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
+#define zeta sqrt(3.0f / 4.0f) * gyroMeasDrift // compute zeta
 // Global system variables
 
 
@@ -42,6 +44,9 @@
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 
+float b_x = 1, b_z = 0; // reference direction of flux in earth frame
+
+float w_bx = 0, w_by = 0, w_bz = 0; // estimate gyroscope biases error
 
 float SEq_1 = 1.0f, SEq_2 = 0.0f, SEq_3 = 0.0f, SEq_4 = 0.0f; // estimated orientation quaternion elements with initial conditions
 
@@ -63,9 +68,9 @@ long long * calibrate_acc();
 
 long long *calibrate_gyr();
 
-void filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z);
+void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z);
 
-void filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z);
+void inline filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z);
 
 void computeAngles();
 
@@ -98,7 +103,6 @@ int main(int argc, char *argv[])
   float acc_G[3] = {0.0f}; // Converted to G
   float scaledMag[3] = {0.0f}; //After hard iron and soft iron calibration
 
-
   int startInt;
   struct  timeval tvBegin, tvEnd,tvDiff;
 
@@ -112,6 +116,7 @@ int main(int argc, char *argv[])
   int64_t *ca = calibrate_acc();
   int64_t *cg = calibrate_gyr();
   int G_raw = ca[3];
+
   printf("OffAccX: %6lld\tOffAccY: %6lld\tOffAccZ: %6lld\n", ca[0], ca[1], ca[2]);
   gettimeofday(&tvBegin, NULL);
   while(1)
@@ -129,21 +134,22 @@ int main(int argc, char *argv[])
       //Get Raw Values
       readACC(accRaw);
       readGYR(gyrRaw);
-      readMAG(magRaw);
+      //readMAG(magRaw);
 
 
       //Subtract offset values;
       ca_x[0] = (((accRaw[0]-(int)ca[0]) + ca_x[1])/2);
       ca_y[0] = (((accRaw[1]-(int)ca[1]) + ca_y[1])/2);
-      ca_z[0] = -((accRaw[2] + ca_z[1])/2);
+      ca_z[0] = ((-accRaw[2]-(int)ca[2] + ca_z[1])/2);
+      //ca_z[0] = -accRaw[2];
       cg_x[0] = (((gyrRaw[0]-(int)cg[0]) + cg_x[1])/2);
       cg_y[0] = (((gyrRaw[1]-(int)cg[1]) + cg_y[1])/2);
       cg_z[0] = (((gyrRaw[2]-(int)cg[2]) + cg_z[1])/2);
-
+      
       //Apply hard iron calibration
-        magRaw[0] -= (magXmin + magXmax) /2 ;
-        magRaw[1] -= (magYmin + magYmax) /2 ;
-        magRaw[2] -= (magZmin + magZmax) /2 ;
+      //magRaw[0] -= (magXmin + magXmax) /2 ;
+      //magRaw[1] -= (magYmin + magYmax) /2 ;
+      //magRaw[2] -= (magZmin + magZmax) /2 ;
 
       //Convert acc to G's
       acc_G[0] = ((float)ca_x[0])/((float)G_raw);
@@ -156,9 +162,9 @@ int main(int argc, char *argv[])
       gyr_rate_rad[2] = (float)cg_z[0]  * G_GAIN * M_PI / 180.0f;
 
       //Apply soft iron calibration
-        scaledMag[0]  = (float)(magRaw[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
-        scaledMag[1]  = (float)(magRaw[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
-        scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
+      //scaledMag[0]  = (float)(magRaw[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
+      //scaledMag[1]  = (float)(magRaw[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
+      //scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
 
       //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x[0], ca_y[0], ca_z[0]);
 
@@ -226,9 +232,9 @@ long long * calibrate_acc()
   printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
   ret[0] = ret[0]/100;
   ret[1] = ret[1]/100;
-  ret[2] = ret[2]/100;
+  ret[2] = (-16384 - (ret[2]/100));
   //ret[3] is the calculated raw value that corresponds to 1 G
-  ret[3] = (int64_t)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(ret[2],2));
+  ret[3] = (int64_t)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(16384,2));
   return ret;
 }
 
@@ -258,7 +264,7 @@ long long *calibrate_gyr()
 
 
 
-void filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z)
+void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z)
 {
   // Local system variables
   float norm; // vector norm
@@ -318,8 +324,7 @@ void filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a
   SEq_4 /= norm;
 }
 
-/*
-void filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z)
+void inline filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z)
 {
     // local system variables
     float norm; // vector norm
@@ -445,7 +450,7 @@ void filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, flo
     b_x = sqrt((h_x * h_x) + (h_y * h_y));
     b_z = h_z;
 }
-*/
+
 
 
 void computeAngles()
