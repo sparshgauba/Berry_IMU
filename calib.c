@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 
-#define DT 0.004         // [s/loop] loop period in ms
+#define DT 0.01         // [s/loop] loop period in ms
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -18,13 +18,13 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 10
-#define THRES_G 10
+#define THRES_A 150
+#define THRES_G 85
 
 // System constants
-#define deltat 0.004f // sampling period in seconds (shown as 20 ms)
+#define deltat 0.01f // sampling period in seconds (shown as 20 ms)
 #define gyroMeasError 3.14159265358979f * (5.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
-#define gyroMeasDrift 3.14159265358979f * (0.02f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
+#define gyroMeasDrift 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
 #define zeta sqrt(3.0f / 4.0f) * gyroMeasDrift // compute zeta
 // Global system variables
@@ -34,12 +34,12 @@
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 2008
-#define magYmax 1493
-#define magZmax 886
-#define magXmin -374
-#define magYmin -707
-#define magZmin -1243
+#define magXmax 1742
+#define magYmax 1430
+#define magZmax 806
+#define magXmin -260
+#define magYmin -470
+#define magZmin -1052
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -134,49 +134,49 @@ int main(int argc, char *argv[])
       //Get Raw Values
       readACC(accRaw);
       readGYR(gyrRaw);
-      //readMAG(magRaw);
+      readMAG(magRaw);
 
 
       //Subtract offset values;
-      ca_x[0] = (((accRaw[0]-(int)ca[0]) + ca_x[1])/2);
-      ca_y[0] = (((accRaw[1]-(int)ca[1]) + ca_y[1])/2);
-      ca_z[0] = ((-accRaw[2]-(int)ca[2] + ca_z[1])/2);
-      //ca_z[0] = -accRaw[2];
-      cg_x[0] = (((gyrRaw[0]-(int)cg[0]) + cg_x[1])/2);
-      cg_y[0] = (((gyrRaw[1]-(int)cg[1]) + cg_y[1])/2);
-      cg_z[0] = (((gyrRaw[2]-(int)cg[2]) + cg_z[1])/2);
-      
+      ca_x[0] = (accRaw[0]-(int)ca[0]);
+      ca_y[0] = (accRaw[1]-(int)ca[1]);
+      ca_z[0] = (-accRaw[2]-(int)ca[2]);
+      cg_x[0] = (gyrRaw[0]-(int)cg[0]);
+      cg_y[0] = (gyrRaw[1]-(int)cg[1]);
+      cg_z[0] = (gyrRaw[2]-(int)cg[2]);
+      /*
+      ca_x[0] = abs(ca_x[0] - ca_x[1]) < THRES_A ? (int)(ca_x[1]+ca_x[0])/2 : ca_x[0];
+      ca_y[0] = abs(ca_y[0] - ca_y[1]) < THRES_A ? (int)(ca_y[1]+ca_y[0])/2 : ca_y[0];
+      ca_z[0] = abs(ca_z[0] - ca_z[1]) < THRES_A ? (int)(ca_z[1]+ca_z[0])/2 : ca_z[0];
+      cg_x[0] = abs(cg_x[0] - cg_x[1]) < THRES_G ? (int)(cg_x[1]+cg_x[0])/2 : cg_x[0];
+      cg_y[0] = abs(cg_y[0] - cg_y[1]) < THRES_G ? (int)(cg_y[1]+cg_y[0])/2 : cg_y[0];
+      cg_z[0] = abs(cg_z[0] - cg_z[1]) < THRES_G ? (int)(cg_z[1]+cg_z[0])/2 : cg_z[0];
+      */
+      ca_x[0] = abs(ca_x[0]) < THRES_A ? 0 : ca_x[0];
+      ca_y[0] = abs(ca_y[0]) < THRES_A ? 0 : ca_y[0];
+      ca_z[0] = abs(ca_z[0] - 16384) < THRES_A ? 16384 : ca_z[0];
+      cg_x[0] = abs(cg_x[0]) < THRES_G ? 0 : cg_x[0];
+      cg_y[0] = abs(cg_y[0]) < THRES_G ? 0 : cg_y[0];
+      cg_z[0] = abs(cg_z[0]) < THRES_G ? 0 : cg_z[0];
       //Apply hard iron calibration
-      //magRaw[0] -= (magXmin + magXmax) /2 ;
-      //magRaw[1] -= (magYmin + magYmax) /2 ;
-      //magRaw[2] -= (magZmin + magZmax) /2 ;
-
-      //Convert acc to G's
-      acc_G[0] = ((float)ca_x[0])/((float)G_raw);
-      acc_G[1] = ((float)ca_y[0])/((float)G_raw);
-      acc_G[2] = ((float)ca_z[0])/((float)G_raw);
+      magRaw[0] -= (magXmin + magXmax) /2 ;
+      magRaw[1] -= (magYmin + magYmax) /2 ;
+      magRaw[2] -= (magZmin + magZmax) /2 ;
 
       //Convert gyr to Rad/s
       gyr_rate_rad[0] = (float)cg_x[0]  * G_GAIN * M_PI / 180.0f;
       gyr_rate_rad[1] = (float)cg_y[0]  * G_GAIN * M_PI / 180.0f;
       gyr_rate_rad[2] = (float)cg_z[0]  * G_GAIN * M_PI / 180.0f;
 
-      //Apply soft iron calibration
-      //scaledMag[0]  = (float)(magRaw[0] - magXmin) / (magXmax - magXmin) * 2 - 1;
-      //scaledMag[1]  = (float)(magRaw[1] - magYmin) / (magYmax - magYmin) * 2 - 1;
-      //scaledMag[2]  = (float)(magRaw[2] - magZmin) / (magZmax - magZmin) * 2 - 1;
-
       //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x[0], ca_y[0], ca_z[0]);
 
       //printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x[0], cg_y[0], cg_z[0]);
 
-      //printf("AccX: %5.2f\tAccY: %5.2f\tAccZ: %5.2f\t", acc_G[0], acc_G[1], acc_G[2]);
-
-      filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2]);
-      //filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], acc_G[0], acc_G[1], acc_G[2], scaledMag[0], scaledMag[1], scaledMag[2]);
+      //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)ca_x[0], (float)ca_y[0], (float)ca_z[0]);
+      filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)ca_x[0], (float)ca_y[0], (float)ca_z[0], (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
       computeAngles();
 
-      printf("Roll: %5.2f\t Pitch: %5.2f\t Yaw:Z %5.2f", madAngles[0], madAngles[1], madAngles[2]);
+      printf("Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))
