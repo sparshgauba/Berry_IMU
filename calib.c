@@ -4,13 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
 #include "IMU.c"
 
-#define DT 0.01         // [s/loop] loop period in ms
+#define DT 0.025         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -18,12 +19,12 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 150
-#define THRES_G 85
+#define THRES_A 150 // Raw Acc Noise Floor
+#define THRES_G 80  // Raw Gyr Noise Floor
 
 // System constants
-#define deltat 0.01f // sampling period in seconds (shown as 20 ms)
-#define gyroMeasError 3.14159265358979f * (5.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
+#define deltat 0.025f // sampling period in seconds (shown as 25 ms)
+#define gyroMeasError 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define gyroMeasDrift 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
 #define zeta sqrt(3.0f / 4.0f) * gyroMeasDrift // compute zeta
@@ -34,19 +35,19 @@
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 1742
-#define magYmax 1430
-#define magZmax 806
-#define magXmin -260
-#define magYmin -470
-#define magZmin -1052
+#define magXmax 2002
+#define magYmax 1632
+#define magZmax 1283
+#define magXmin -315
+#define magYmin -774
+#define magZmin -1325
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 
 float b_x = 1, b_z = 0; // reference direction of flux in earth frame
 
-float w_bx = 0, w_by = 0, w_bz = 0; // estimate gyroscope biases error
+float w_bx = 0.0f, w_by = 0.0f, w_bz = 0.0f; // estimate gyroscope biases error
 
 float SEq_1 = 1.0f, SEq_2 = 0.0f, SEq_3 = 0.0f, SEq_4 = 0.0f; // estimated orientation quaternion elements with initial conditions
 
@@ -72,6 +73,8 @@ void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, 
 
 void inline filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z);
 
+float InvSqrt(float x); // Used to avoid division by zero in filter
+
 void computeAngles();
 
 
@@ -90,13 +93,25 @@ int main(int argc, char *argv[])
   uint64_t cg_y_full = 0;
   uint64_t cg_z_full = 0;
 
-  int32_t *ca_x = (int32_t *)&ca_x_full;
-  int32_t *ca_y = (int32_t *)&ca_y_full;
-  int32_t *ca_z = (int32_t *)&ca_z_full;
 
-  int32_t *cg_x = (int32_t *)&cg_x_full;
-  int32_t *cg_y = (int32_t *)&cg_y_full;
-  int32_t *cg_z = (int32_t *)&cg_z_full;
+  //Arrays for current and prev values
+  int16_t *ca_x = (int16_t *)&ca_x_full;
+  int16_t *ca_y = (int16_t *)&ca_y_full;
+  int16_t *ca_z = (int16_t *)&ca_z_full;
+
+  int16_t *cg_x = (int16_t *)&cg_x_full;
+  int16_t *cg_y = (int16_t *)&cg_y_full;
+  int16_t *cg_z = (int16_t *)&cg_z_full;
+
+  //Final ACC and GYR values for each update
+  int a_x = 0;
+  int a_y = 0;
+  int a_z = 0;
+
+  int g_x = 0;
+  int g_y = 0;
+  int g_z = 0;
+
 
   //Values to send to MadgwickAHRS
   float gyr_rate_rad[3] = {0.0f}; // Converted to Radians per second
@@ -117,74 +132,83 @@ int main(int argc, char *argv[])
   int64_t *cg = calibrate_gyr();
   int G_raw = ca[3];
 
-  printf("OffAccX: %6lld\tOffAccY: %6lld\tOffAccZ: %6lld\n", ca[0], ca[1], ca[2]);
+  //printf("OffAccX: %6lld\tOffAccY: %6lld\tOffAccZ: %6lld\n", ca[0], ca[1], ca[2]);
   gettimeofday(&tvBegin, NULL);
   while(1)
     {
       startInt  = mymillis();
-      //Move current values to last values;
-      ca_x_full <<= 32;
-      ca_y_full <<= 32;
-      ca_z_full <<= 32;
-      cg_x_full <<= 32;
-      cg_y_full <<= 32;
-      cg_z_full <<= 32;
+      //Slide values to previous slot;
+      ca_x_full <<= 16;
+      ca_y_full <<= 16;
+      ca_z_full <<= 16;
+      cg_x_full <<= 16;
+      cg_y_full <<= 16;
+      cg_z_full <<= 16;
 
 
-      //Get Raw Values
+      //Get Raw Values;
       readACC(accRaw);
       readGYR(gyrRaw);
       readMAG(magRaw);
 
 
       //Subtract offset values;
-      ca_x[0] = (accRaw[0]-(int)ca[0]);
-      ca_y[0] = (accRaw[1]-(int)ca[1]);
-      ca_z[0] = (-accRaw[2]-(int)ca[2]);
-      cg_x[0] = (gyrRaw[0]-(int)cg[0]);
-      cg_y[0] = (gyrRaw[1]-(int)cg[1]);
-      cg_z[0] = (gyrRaw[2]-(int)cg[2]);
-      /*
-      ca_x[0] = abs(ca_x[0] - ca_x[1]) < THRES_A ? (int)(ca_x[1]+ca_x[0])/2 : ca_x[0];
-      ca_y[0] = abs(ca_y[0] - ca_y[1]) < THRES_A ? (int)(ca_y[1]+ca_y[0])/2 : ca_y[0];
-      ca_z[0] = abs(ca_z[0] - ca_z[1]) < THRES_A ? (int)(ca_z[1]+ca_z[0])/2 : ca_z[0];
-      cg_x[0] = abs(cg_x[0] - cg_x[1]) < THRES_G ? (int)(cg_x[1]+cg_x[0])/2 : cg_x[0];
-      cg_y[0] = abs(cg_y[0] - cg_y[1]) < THRES_G ? (int)(cg_y[1]+cg_y[0])/2 : cg_y[0];
-      cg_z[0] = abs(cg_z[0] - cg_z[1]) < THRES_G ? (int)(cg_z[1]+cg_z[0])/2 : cg_z[0];
-      */
-      ca_x[0] = abs(ca_x[0]) < THRES_A ? 0 : ca_x[0];
-      ca_y[0] = abs(ca_y[0]) < THRES_A ? 0 : ca_y[0];
-      ca_z[0] = abs(ca_z[0] - 16384) < THRES_A ? 16384 : ca_z[0];
-      cg_x[0] = abs(cg_x[0]) < THRES_G ? 0 : cg_x[0];
-      cg_y[0] = abs(cg_y[0]) < THRES_G ? 0 : cg_y[0];
-      cg_z[0] = abs(cg_z[0]) < THRES_G ? 0 : cg_z[0];
+      ca_x[0] = (int16_t)(accRaw[0]-(int)ca[0]);
+      ca_y[0] = (int16_t)(accRaw[1]-(int)ca[1]);
+      ca_z[0] = (int16_t)(-accRaw[2]-(int)ca[2]);
+      cg_x[0] = (int16_t)(gyrRaw[0]-(int)cg[0]);
+      cg_y[0] = (int16_t)(gyrRaw[1]-(int)cg[1]);
+      cg_z[0] = (int16_t)(gyrRaw[2]-(int)cg[2]);
+
+      //Average past values
+      a_x = ((int)ca_x[0] + ca_x[1] + ca_x[2] + ca_x[3]) / 4;
+      a_y = ((int)ca_y[0] + ca_y[1] + ca_y[2] + ca_y[3]) / 4;
+      a_z = ((int)ca_z[0] + ca_z[1] + ca_z[2] + ca_z[3]) / 4;
+      g_x = ((int)cg_x[0] + cg_x[1] + cg_x[2] + cg_x[3]) / 4;
+      g_y = ((int)cg_y[0] + cg_y[1] + cg_y[2] + cg_y[3]) / 4;
+      g_z = ((int)cg_z[0] + cg_z[1] + cg_z[2] + cg_z[3]) / 4;
+
+      //Get rid of small fluctuations
+      a_x = ((a_x>>4)<<4);
+      a_y = ((a_y>>4)<<4);
+      a_z = ((a_z>>4)<<4);
+      g_x = ((g_x>>4)<<4);
+      g_y = ((g_y>>4)<<4);
+      g_z = ((g_z>>4)<<4);
+
+      //Steady State fix
+      g_x = abs(g_x) < THRES_G ? 0 : g_x;
+      g_y = abs(g_y) < THRES_G ? 0 : g_y;
+      g_z = abs(g_z) < THRES_G+16 ? 0 : g_z;
       //Apply hard iron calibration
       magRaw[0] -= (magXmin + magXmax) /2 ;
       magRaw[1] -= (magYmin + magYmax) /2 ;
       magRaw[2] -= (magZmin + magZmax) /2 ;
 
       //Convert gyr to Rad/s
-      gyr_rate_rad[0] = (float)cg_x[0]  * G_GAIN * M_PI / 180.0f;
-      gyr_rate_rad[1] = (float)cg_y[0]  * G_GAIN * M_PI / 180.0f;
-      gyr_rate_rad[2] = (float)cg_z[0]  * G_GAIN * M_PI / 180.0f;
+      gyr_rate_rad[0] = (float)g_x  * G_GAIN * M_PI / 180.0f;
+      gyr_rate_rad[1] = (float)g_y  * G_GAIN * M_PI / 180.0f;
+      gyr_rate_rad[2] = (float)g_z  * G_GAIN * M_PI / 180.0f;
 
-      //printf("AccX: %4d\tAccY: %4d\tAccZ: %4d\t", ca_x[0], ca_y[0], ca_z[0]);
+      //printf("AccX: %5d\tAccY: %5d\tAccZ: %5d\t", a_x, a_y, a_z);
 
-      //printf("GyrX: %4d\tGyrY: %4d\tGyrZ: %4d\t", cg_x[0], cg_y[0], cg_z[0]);
+      //printf("GyrX: %5d\tGyrY: %5d\tGyrZ: %5d\t", g_x, g_y, g_z);
 
-      //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)ca_x[0], (float)ca_y[0], (float)ca_z[0]);
-      filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)ca_x[0], (float)ca_y[0], (float)ca_z[0], (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
+      //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z);
+      filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z, (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
       computeAngles();
 
-      printf("Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
+      //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
+      fprintf(stdout,"%.2f,%.2f,%.2f\n", madAngles[0], madAngles[1], madAngles[2]);
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))
-        {
+      {
 	  usleep(100);
-        }
+      }
 
-      printf("Loop Time %d\n", mymillis()- startInt);
+      //fprintf(stdout,"Loop Time %d\n", mymillis()- startInt);
+      fflush(stdout);
 
     }
 
@@ -229,7 +253,7 @@ long long * calibrate_acc()
       ret[1]+=accRaw[1];
       ret[2]+=accRaw[2];
     }
-  printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
+  //printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
   ret[0] = ret[0]/100;
   ret[1] = ret[1]/100;
   ret[2] = (-16384 - (ret[2]/100));
@@ -254,7 +278,7 @@ long long *calibrate_gyr()
       ret[1]+=gyrRaw[1];
       ret[2]+=gyrRaw[2];
     }
-  printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
+  //printf("*********************************    Loop Time %d     ************************\n", mymillis()- start);
   ret[0] = ret[0]/100;
   ret[1] = ret[1]/100;
   ret[2] = ret[2]/100;
@@ -267,7 +291,7 @@ long long *calibrate_gyr()
 void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z)
 {
   // Local system variables
-  float norm; // vector norm
+  float rnorm; // vector norm
   float SEqDot_omega_1, SEqDot_omega_2, SEqDot_omega_3, SEqDot_omega_4; // quaternion derrivative from gyroscopes elements
   float f_1, f_2, f_3; // objective function elements
   float J_11or24, J_12or23, J_13or22, J_14or21, J_32, J_33; // objective function Jacobian elements
@@ -281,10 +305,10 @@ void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, 
   float twoSEq_2 = 2.0f * SEq_2;
   float twoSEq_3 = 2.0f * SEq_3;
   // Normalise the accelerometer measurement
-  norm = sqrt(a_x * a_x + a_y * a_y + a_z * a_z);
-  a_x /= norm;
-  a_y /= norm;
-  a_z /= norm;
+  rnorm = InvSqrt(a_x * a_x + a_y * a_y + a_z * a_z);
+  a_x *= rnorm;
+  a_y *= rnorm;
+  a_z *= rnorm;
   // Compute the objective function and Jacobian
   f_1 = twoSEq_2 * SEq_4 - twoSEq_1 * SEq_3 - a_x;
   f_2 = twoSEq_1 * SEq_2 + twoSEq_3 * SEq_4 - a_y;
@@ -301,11 +325,11 @@ void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, 
   SEqHatDot_3 = J_12or23 * f_2 - J_33 * f_3 - J_13or22 * f_1;
   SEqHatDot_4 = J_14or21 * f_1 + J_11or24 * f_2;
   // Normalise the gradient
-  norm = sqrt(SEqHatDot_1 * SEqHatDot_1 + SEqHatDot_2 * SEqHatDot_2 + SEqHatDot_3 * SEqHatDot_3 + SEqHatDot_4 * SEqHatDot_4);
-  SEqHatDot_1 /= norm;
-  SEqHatDot_2 /= norm;
-  SEqHatDot_3 /= norm;
-  SEqHatDot_4 /= norm;
+  rnorm = InvSqrt(SEqHatDot_1 * SEqHatDot_1 + SEqHatDot_2 * SEqHatDot_2 + SEqHatDot_3 * SEqHatDot_3 + SEqHatDot_4 * SEqHatDot_4);
+  SEqHatDot_1 *= rnorm;
+  SEqHatDot_2 *= rnorm;
+  SEqHatDot_3 *= rnorm;
+  SEqHatDot_4 *= rnorm;
   // Compute the quaternion derrivative measured by gyroscopes
   SEqDot_omega_1 = -halfSEq_2 * w_x - halfSEq_3 * w_y - halfSEq_4 * w_z;
   SEqDot_omega_2 = halfSEq_1 * w_x + halfSEq_3 * w_z - halfSEq_4 * w_y;
@@ -317,11 +341,11 @@ void inline filterUpdate(float w_x, float w_y, float w_z, float a_x, float a_y, 
   SEq_3 += (SEqDot_omega_3 - (beta * SEqHatDot_3)) * deltat;
   SEq_4 += (SEqDot_omega_4 - (beta * SEqHatDot_4)) * deltat;
   // Normalise quaternion
-  norm = sqrt(SEq_1 * SEq_1 + SEq_2 * SEq_2 + SEq_3 * SEq_3 + SEq_4 * SEq_4);
-  SEq_1 /= norm;
-  SEq_2 /= norm;
-  SEq_3 /= norm;
-  SEq_4 /= norm;
+  rnorm = InvSqrt(SEq_1 * SEq_1 + SEq_2 * SEq_2 + SEq_3 * SEq_3 + SEq_4 * SEq_4);
+  SEq_1 *= rnorm;
+  SEq_2 *= rnorm;
+  SEq_3 *= rnorm;
+  SEq_4 *= rnorm;
 }
 
 void inline filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a_y, float a_z, float m_x, float m_y, float m_z)
@@ -451,6 +475,17 @@ void inline filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a
     b_z = h_z;
 }
 
+float InvSqrt(float x)
+{
+	float halfx = 0.5f * x;
+	float y = x;
+	long i = *(long*)&y;
+	i = 0x5f3759df - (i>>1);
+	y = *(float*)&i;
+	y = y * (1.5f - (halfx * y * y));
+	y = y * (1.5f - (halfx * y * y));
+	return y;
+}
 
 
 void computeAngles()
