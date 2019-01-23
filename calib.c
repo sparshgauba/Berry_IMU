@@ -172,9 +172,9 @@ int main(int argc, char *argv[])
       a_x = ((a_x>>4)<<4);
       a_y = ((a_y>>4)<<4);
       a_z = ((a_z>>4)<<4);
-      g_x = ((g_x>>4)<<4);
-      g_y = ((g_y>>4)<<4);
-      g_z = ((g_z>>4)<<4);
+      g_x = ((g_x>>3)<<3);
+      g_y = ((g_y>>3)<<3);
+      g_z = ((g_z>>3)<<3);
 
       //Steady State fix
       g_x = abs(g_x) < THRES_G ? 0 : g_x;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
       computeAngles();
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
-      fprintf(stdout,"%.2f,%.2f,%.2f\n", madAngles[0], madAngles[1], madAngles[2]);
+      fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0], madAngles[1], madAngles[2]);
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))
