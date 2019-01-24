@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
       computeAngles();
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
-      fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0], madAngles[1], madAngles[2]);
+      fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))

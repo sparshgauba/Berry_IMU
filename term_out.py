@@ -45,20 +45,18 @@ def main():
             count += 1
             if i == ',' and i1 == 0 and i2 == 0:
                 roll =  float(ln[0:count-1])
-                roll = roll * 180/m.pi
                 i1 = count
                 continue
             if i == ',' and i1 != 0 and i2 == 0:
                 pitch = float(ln[i1:count-1])
-                pitch = pitch * 180/m.pi
                 i2 = count
                 continue
             if count == len(ln):
                 yaw = float(ln[i2:count-1])
-                yaw = yaw * 180/m.pi
 
 
-        print (roll,pitch,yaw)
+        #print ("%.2f               %.2f                %.2f" %roll,pitch,yaw)
+        print(roll,pitch,yaw)
         time.sleep(0.020)
 
 if __name__ == "__main__":
