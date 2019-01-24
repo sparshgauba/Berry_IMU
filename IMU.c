@@ -212,7 +212,7 @@ void enableIMU()
 	if (LSM9DS1){//For BerryIMUv2
 		// Enable the gyroscope
 		writeGyrReg(LSM9DS1_CTRL_REG4,0b00111000);      // z, y, x axis enabled for gyro
-		writeGyrReg(LSM9DS1_CTRL_REG1_G,0b11010000);    // Gyro ODR = 952Hz, 2000 dps
+		writeGyrReg(LSM9DS1_CTRL_REG1_G,0b11001000);    // Gyro ODR = 952Hz, 2000 dps
 		writeGyrReg(LSM9DS1_ORIENT_CFG_G,0b10111000);   // Swap orientation 
 
 		// Enable the accelerometer

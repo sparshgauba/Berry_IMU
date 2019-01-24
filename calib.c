@@ -15,7 +15,7 @@
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
-#define G_GAIN 0.017*2     // [deg/s/LSB] //For 500 deg/s Precision
+#define G_GAIN 0.017     // [deg/s/LSB] //For 500 deg/s Precision
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
@@ -35,12 +35,12 @@
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 2002
-#define magYmax 1632
-#define magZmax 1283
-#define magXmin -315
-#define magYmin -774
-#define magZmin -1325
+#define magXmax 2021
+#define magYmax 1555
+#define magZmax 960
+#define magXmin -254
+#define magYmin -532
+#define magZmin -1136
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -172,10 +172,6 @@ int main(int argc, char *argv[])
       a_x = ((a_x>>4)<<4);
       a_y = ((a_y>>4)<<4);
       a_z = ((a_z>>4)<<4);
-      g_x = ((g_x>>3)<<3);
-      g_y = ((g_y>>3)<<3);
-      g_z = ((g_z>>3)<<3);
-
       //Steady State fix
       g_x = abs(g_x) < THRES_G ? 0 : g_x;
       g_y = abs(g_y) < THRES_G ? 0 : g_y;

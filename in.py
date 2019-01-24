@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #################################################################
 # Test program to parse orientation output
 #################################################################
@@ -11,13 +12,12 @@ import os
 import json
 import subprocess
 
-p = 0
-
 def handler(signum, frame):
     print ("Program ended")
     p.kill()
 
 def main():
+    signal.signal(signal.SIGINT, handler)
     # Starts IMU process
     p = subprocess.Popen("./calib", stdout=subprocess.PIPE)
     roll = 0.0
@@ -61,9 +61,5 @@ def main():
         print (roll,pitch,yaw)
         time.sleep(0.020)
 
-
-
-        
-signal.signal(signal.SIGINT, handler)
 if __name__ == "__main__":
     main()
