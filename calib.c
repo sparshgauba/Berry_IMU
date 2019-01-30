@@ -10,7 +10,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "IMU.c"
-
+#include "quaternion.h"
 #define DT 0.025         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
