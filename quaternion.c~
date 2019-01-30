@@ -22,15 +22,3 @@ void quaternion_multiply(float q1r, float q1i, float q1j, float q1k, float q2r, 
   rj = q1r * q2j - q1i * q2k + q1j * q2r + q1k * q2i;
   rk = q1r * q2k + q1i * q2j - q1j * q2i + q1k * q2r;
 }
-
-float vector_normalize(float vx, float vy, float vz, float rx, float ry, float rz)
-{
-  float mag = sqrt(pow(vx, 2) + pow(vy, 2) + pow(vz, 2));
-  if(mag != 0)
-  {
-      rx = vx / mag;
-      ry = vy / mag;
-      rz = vz / mag;
-  }
-  return mag;
-}

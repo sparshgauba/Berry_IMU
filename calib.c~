@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 
   //Values to send to MadgwickAHRS
   float gyr_rate_rad[3] = {0.0f}; // Converted to Radians per second
-  float acc_norm[3] = {0.0f}; // Converted to G
+  float acc_G[3] = {0.0f}; // Converted to G
   float scaledMag[3] = {0.0f}; //After hard iron and soft iron calibration
 
   int startInt;
@@ -197,13 +197,10 @@ int main(int argc, char *argv[])
       //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z);
       filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z, (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
       //computeAngles();
-      
-      quaternion_rotate(0, 0, 1, SEq_1, SEq_2, SEq_3, SEq_4, acc_norm[0], acc_norm[1], acc_norm[2]);
-      printf("%7f\t%7f\t%7f\t", 16384*acc_norm[0], 16384*acc_norm[1], 16384*acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
       //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      //fprintf(stdout,"Q1:  %7.3f    Q2:  %7.3f    Q3:  %7.3f    Q4:  %7.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
+      fprintf(stdout,"Q1:  %7.3f    Q2:  %7.3f    Q3:  %7.3f    Q4:  %7.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))
@@ -211,7 +208,7 @@ int main(int argc, char *argv[])
 	  usleep(100);
       }
 
-      fprintf(stdout,"Loop Time %d\n", mymillis()- startInt);
+      //fprintf(stdout,"Loop Time %d\n", mymillis()- startInt);
       fflush(stdout);
 
     }
