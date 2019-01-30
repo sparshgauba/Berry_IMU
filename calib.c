@@ -168,6 +168,10 @@ int main(int argc, char *argv[])
       g_y = ((int)cg_y[0] + cg_y[1] + cg_y[2] + cg_y[3]) / 4;
       g_z = ((int)cg_z[0] + cg_z[1] + cg_z[2] + cg_z[3]) / 4;
 
+      a_x = abs(a_x) < THRES_A ? 0 : a_x;
+      a_y = abs(a_y) < THRES_A ? 0 : a_y;
+      a_z = abs(a_z) < THRES_A ? 0 : a_z;
+
       //Get rid of small fluctuations
       a_x = ((a_x>>4)<<4);
       a_y = ((a_y>>4)<<4);
@@ -186,16 +190,17 @@ int main(int argc, char *argv[])
       gyr_rate_rad[1] = (float)g_y  * G_GAIN * M_PI / 180.0f;
       gyr_rate_rad[2] = (float)g_z  * G_GAIN * M_PI / 180.0f;
 
-      //printf("AccX: %5d\tAccY: %5d\tAccZ: %5d\t", a_x, a_y, a_z);
+      printf("AccX: %5d\tAccY: %5d\tAccZ: %5d\t", a_x, a_y, a_z);
 
       //printf("GyrX: %5d\tGyrY: %5d\tGyrZ: %5d\t", g_x, g_y, g_z);
 
       //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z);
       filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z, (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
-      computeAngles();
+      //computeAngles();
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[0], madAngles[1], madAngles[2]);
-      fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+      //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+      fprintf(stdout,"Q1:  %7.3f    Q2:  %7.3f    Q3:  %7.3f    Q4:  %7.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))
