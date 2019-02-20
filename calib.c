@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 #include "quaternion.h"
-#define DT 0.025         // [s/loop] loop period in sec
+#define DT 0.005         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -19,11 +19,12 @@
 #define RAD_TO_DEG 57.29578
 #define M_PI 3.14159265358979323846
 
-#define THRES_A 10000 // Raw Acc Noise Floor
-#define THRES_G 80  // Raw Gyr Noise Floor
+#define THRES_A 8000 // Raw Acc Noise Floor
+#define THRES_A_DELTA 30 //Acc Delta Floor
+#define THRES_G 30  // Raw Gyr Noise Floor
 
 // System constants
-#define deltat 0.025f // sampling period in seconds (shown as 25 ms)
+#define deltat 0.005f // sampling period in seconds (shown as 25 ms)
 #define gyroMeasError 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define gyroMeasDrift 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
@@ -35,12 +36,12 @@
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 1859
-#define magYmax 1347
-#define magZmax 980
-#define magXmin -455
-#define magYmin -945
-#define magZmin -1168
+#define magXmax 1805
+#define magYmax 1266
+#define magZmax 848
+#define magXmin -359
+#define magYmin -757
+#define magZmin -1078
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -103,18 +104,22 @@ int main(int argc, char *argv[])
   int16_t *cg_z = (int16_t *)&cg_z_full;
 
   //Final ACC and GYR values for each update
-  int a_x = 0;
-  int a_y = 0;
-  int a_z = 0;
+  int a_x[2] = {0};
+  int a_y[2] = {0};
+  int a_z[2] = {0};
 
   int g_x = 0;
   int g_y = 0;
   int g_z = 0;
 
+  double angle_x = 0;
+  double angle_y = 0;
+  double angle_z = 0;
 
   //Values to send to MadgwickAHRS
   float gyr_rate_rad[3] = {0.0f}; // Converted to Radians per second
-  float acc_norm[3] = {0.0f}; // Converted to G
+  int acc_norm[3] = {0}; // Orientation Compensated Acceleration
+  float acc_norm_inv[3] = {0.0f}; //Values to subract from non-G-compensated acceleration values
   float scaledMag[3] = {0.0f}; //After hard iron and soft iron calibration
 
   int startInt;
@@ -136,7 +141,7 @@ int main(int argc, char *argv[])
   while(1)
     {
       startInt  = mymillis();
-      //Slide values to previous slot;
+      //Slide Raw values to previous slot;
       ca_x_full <<= 16;
       ca_y_full <<= 16;
       ca_z_full <<= 16;
@@ -144,11 +149,21 @@ int main(int argc, char *argv[])
       cg_y_full <<= 16;
       cg_z_full <<= 16;
 
-
+      //Slide filtered Acc Value to prev
+      a_x[1] = a_x[0];
+      a_y[1] = a_y[0];
+      a_z[1] = a_z[0];
+      //printf("%d\t%d\t", a_z[0],a_z[1]);
       //Get Raw Values;
       readACC(accRaw);
       readGYR(gyrRaw);
       readMAG(magRaw);
+
+      //Print Raw ACC values
+      //printf("%d,%d,%d\n", accRaw[0], accRaw[1], accRaw[2]);
+
+      //Print Raw GYR values
+      //printf("%d,%d,%d\n", gyrRaw[0], gyrRaw[1], gyrRaw[2]);
 
 
       //Subtract offset values;
@@ -160,57 +175,74 @@ int main(int argc, char *argv[])
       cg_z[0] = (int16_t)(gyrRaw[2]-(int)cg[2]);
 
       //Average past values
-      a_x = ((int)ca_x[0] + ca_x[1] + ca_x[2] + ca_x[3]) / 4;
-      a_y = ((int)ca_y[0] + ca_y[1] + ca_y[2] + ca_y[3]) / 4;
-      a_z = ((int)ca_z[0] + ca_z[1] + ca_z[2] + ca_z[3]) / 4;
-      g_x = ((int)cg_x[0] + cg_x[1] + cg_x[2] + cg_x[3]) / 4;
-      g_y = ((int)cg_y[0] + cg_y[1] + cg_y[2] + cg_y[3]) / 4;
-      g_z = ((int)cg_z[0] + cg_z[1] + cg_z[2] + cg_z[3]) / 4;
+      a_x[0] = ((int)ca_x[0] + ca_x[1] + ca_x[2] + ca_x[3]) / 4;
+      a_y[0] = ((int)ca_y[0] + ca_y[1] + ca_y[2] + ca_y[3]) / 4;
+      a_z[0] = ((int)ca_z[0] + ca_z[1] + ca_z[2] + ca_z[3]) / 4;
+      g_x    = ((int)cg_x[0] + cg_x[1] + cg_x[2] + cg_x[3]) / 4;
+      g_y    = ((int)cg_y[0] + cg_y[1] + cg_y[2] + cg_y[3]) / 4;
+      g_z    = ((int)cg_z[0] + cg_z[1] + cg_z[2] + cg_z[3]) / 4;
 
-      //a_x = abs(a_x) < THRES_A ? 0 : a_x;
-      //a_y = abs(a_y) < THRES_A ? 0 : a_y;
-      //a_z = abs(a_z) < THRES_A ? 0 : a_z;
+      //printf("%d\t%d\n", a_z[0],a_z[1]);
 
-      //Get rid of small fluctuations
-      a_x = ((a_x>>2)<<2);
-      a_y = ((a_y>>2)<<2);
-      a_z = ((a_z>>2)<<2);
+      //Further get rid of small fluctuations
+      a_x[0] = abs(a_x[0] - a_x[1]) < THRES_A_DELTA ? a_x[1] + (a_x[0] - a_x[1])/8 : a_x[0];
+      a_y[0] = abs(a_y[0] - a_y[1]) < THRES_A_DELTA ? a_y[1] + (a_y[0] - a_y[1])/8 : a_y[0];
+      a_z[0] = abs(a_z[0] - a_z[1]) < THRES_A_DELTA ? a_z[1] + (a_z[0] - a_z[1])/8 : a_z[0];
+
       //Steady State fix
       g_x = abs(g_x) < THRES_G ? 0 : g_x;
       g_y = abs(g_y) < THRES_G ? 0 : g_y;
-      g_z = abs(g_z) < THRES_G+16 ? 0 : g_z;
+      g_z = abs(g_z) < THRES_G ? 0 : g_z;
       //Apply hard iron calibration
       magRaw[0] -= (magXmin + magXmax) /2 ;
       magRaw[1] -= (magYmin + magYmax) /2 ;
       magRaw[2] -= (magZmin + magZmax) /2 ;
 
+
       //Convert gyr to Rad/s
-      gyr_rate_rad[0] = (float)g_x  * G_GAIN * M_PI / 180.0f;
-      gyr_rate_rad[1] = (float)g_y  * G_GAIN * M_PI / 180.0f;
-      gyr_rate_rad[2] = (float)g_z  * G_GAIN * M_PI / 180.0f;
+      gyr_rate_rad[0] = (double)g_x  * G_GAIN * M_PI / 180.0f;
+      gyr_rate_rad[1] = (double)g_y  * G_GAIN * M_PI / 180.0f;
+      gyr_rate_rad[2] = (double)g_z  * G_GAIN * M_PI / 180.0f;
 
-      //printf("AccX: %5d\tAccY: %5d\tAccZ: %5d\t", a_x, a_y, a_z);
+      //Convert gyr to Degrees/s
+      //gyr_rate_rad[0] = (double)g_x  * G_GAIN;
+      //gyr_rate_rad[1] = (double)g_y  * G_GAIN;
+      //gyr_rate_rad[2] = (double)g_z  * G_GAIN;
+      //angle_x += gyr_rate_rad[0]*DT;
+      //angle_y += gyr_rate_rad[1]*DT;
+      //angle_z += gyr_rate_rad[2]*DT;
+      //printf("%lf,%lf,%lf\n", angle_x, angle_y, angle_z);
+      
+      //Outputs the filtered accelerometer values
+      printf("%d,%d,%d\n", a_x[0], a_y[0], a_z[0]);
 
-      //printf("GyrX: %5d\tGyrY: %5d\tGyrZ: %5d\t", g_x, g_y, g_z);
+      //Outputs the filtered gyroscope values
+      //printf("%d,%d,%d\n", g_x, g_y, g_z);
 
-      //filterUpdate(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z);
-      filterUpdateAHRS(gyr_rate_rad[0], gyr_rate_rad[1], gyr_rate_rad[2], (float)a_x, (float)a_y, (float)a_z, (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
+      //filterUpdate((float)gyr_rate_rad[0], (float)gyr_rate_rad[1], (float)gyr_rate_rad[2], (float)a_x[0], (float)a_y[0], (float)a_z[0]);
+      //filterUpdate((float)gyr_rate_rad[0], (float)gyr_rate_rad[1], (float)gyr_rate_rad[2], (float)accRaw[0], (float)accRaw[1], (float)accRaw[2]);
+      filterUpdateAHRS((float)gyr_rate_rad[0], (float)gyr_rate_rad[1], (float)gyr_rate_rad[2], 
+                       (float)a_x[0], (float)a_y[0], (float)a_z[0], 
+                       (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
       computeAngles();
-      quaternion_rotate(0, 0, 16400, SEq_1, SEq_2, SEq_3, SEq_4, &acc_norm[0], &acc_norm[1], &acc_norm[2]);
-      a_x = a_x - (int)(acc_norm[0]);
-      a_y = a_y - (int)(acc_norm[1]);
-      a_z = a_z - (int)(acc_norm[2]);
-      
-      a_x = abs(a_x) < THRES_A ? 0 : a_x;
-      a_y = abs(a_y) < THRES_A ? 0 : a_y;
-      a_z = abs(a_z) < THRES_A ? 0 : a_z;
-      
-      //printf("%7.1f            %7.1f            %7.1f\t", acc_norm[0], acc_norm[1], acc_norm[2]);
-      printf("%5d\t%5d\t%5d\t", a_x, a_y, a_z);
+      quaternion_rotate(0, 0, 16384, SEq_1, SEq_2, SEq_3, SEq_4, &acc_norm_inv[0], &acc_norm_inv[1], &acc_norm_inv[2]);
+      acc_norm[0] = a_x[0] - (int)(acc_norm_inv[0]);
+      acc_norm[1] = a_y[0] - (int)(acc_norm_inv[1]);
+      acc_norm[2] = a_z[0] - (int)(acc_norm_inv[2]);
+      acc_norm[0] = abs(acc_norm[0]) < THRES_A ? 0 : acc_norm[0];
+      acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
+      acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
 
-      //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw:Z %8.3f\t", madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      //fprintf(stdout,"Q1:  %7.3f    Q2:  %7.3f    Q3:  %7.3f    Q4:  %7.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
+
+      //printf("%7d            %7d            %7d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
+      //printf("%d,%d,%d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
+
+      //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+      //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+      //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0], madAngles[1], madAngles[2]);
+      //fprintf(stdout,"%.3f,%.3f,%.3f,%.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
+
+      
 
       //Each loop should be at least 20ms.
       while(mymillis() - startInt < (DT*1000))
@@ -218,7 +250,7 @@ int main(int argc, char *argv[])
 	  usleep(100);
       }
 
-      fprintf(stdout,"Loop Time %d\n", mymillis()- startInt);
+      //fprintf(stdout,"Loop %d\n", mymillis()- startInt);
       fflush(stdout);
 
     }
@@ -270,6 +302,7 @@ long long * calibrate_acc()
   ret[2] = (-16384 - (ret[2]/100));
   //ret[3] is the calculated raw value that corresponds to 1 G
   ret[3] = (int64_t)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(16384,2));
+  printf("acc calibration values: %d,%d,%d,%d\n", ret[0],ret[1],ret[2],ret[3]);
   return ret;
 }
 
@@ -293,6 +326,7 @@ long long *calibrate_gyr()
   ret[0] = ret[0]/100;
   ret[1] = ret[1]/100;
   ret[2] = ret[2]/100;
+  printf("gyr calibration values: %d,%d,%d\n", ret[0],ret[1],ret[2]);
   return ret;
 }
 
@@ -505,22 +539,3 @@ void computeAngles()
   madAngles[1] = asinf(-2.0f * (SEq_2*SEq_4 - SEq_1*SEq_3));
   madAngles[2] = atan2f(SEq_2*SEq_3 + SEq_1*SEq_4, 0.5f - SEq_3*SEq_3 - SEq_4*SEq_4);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
