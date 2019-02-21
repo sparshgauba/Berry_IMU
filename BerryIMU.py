@@ -43,15 +43,15 @@ def collect(sensor_socket, ADDRESS, signal):
 
     while True:
         #Collect force sensor data
-        #value = mcp.read_adc(1)
-        #if value <= threshold:
-            #force_val = 0.0
-        #else:
-            #last_val = force_val
-            #if value <= 600:
-                #force_val = ((value - threshold)/(max_limit - threshold))**gamma1
-            #else:
-                #force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
+        value = mcp.read_adc(1)
+        if value <= threshold:
+            force_val = 0.0
+        else:
+            last_val = force_val
+            if value <= 600:
+                force_val = ((value - threshold)/(max_limit - threshold))**gamma1
+            else:
+                force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
 
 
 
