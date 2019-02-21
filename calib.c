@@ -267,6 +267,7 @@ int main(int argc, char *argv[])
 	  gesture_state = 0;
 	  gesture_timer = 0;
       }
+      printf("Gesture State: %d          Timer: %d          Melee: %d\n", gesture_state, gesture_timer, gesture_melee);
 
       if (gesture_timer > 0)
 	gesture_timer--;
