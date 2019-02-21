@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 #include "quaternion.h"
-#define DT 0.005         // [s/loop] loop period in sec
+#define DT 0.008         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -24,7 +24,7 @@
 #define THRES_G 80  // Raw Gyr Noise Floor
 
 // System constants
-#define deltat 0.005f // sampling period in seconds (shown as 25 ms)
+#define deltat 0.008f // sampling period in seconds (shown as 25 ms)
 #define gyroMeasError 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define gyroMeasDrift 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
       if (print_counter == 3)
       {
-      	fprintf(stdout,"%.3f,%.3f,%.3f,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee);
+      	//fprintf(stdout,"%.3f,%.3f,%.3f,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee);
 	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
         print_counter = 0;
       }
