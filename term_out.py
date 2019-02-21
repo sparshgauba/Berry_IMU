@@ -11,6 +11,8 @@ import datetime
 import os
 import json
 import subprocess
+import Adafruit_GPIO.SPI as SPI
+import Adafruit_MCP3008
 
 def handler(signum, frame):
     print ("Program ended")
@@ -24,17 +26,50 @@ def main():
     pitch = 0.0
     yaw = 0.0
     x = 0
-
-    
+    CLK  = 18
+    MISO = 23
+    MOSI = 24
+    CS   = 25
+    mcp = Adafruit_MCP3008.MCP3008(clk=CLK, cs=CS, miso=MISO, mosi=MOSI)
+    threshold = 550
+    gamma1 = 2.5
+    gamma2 = 0.65
+    max_limit = 980.0
+    gain = 0.4
+    force_val = 0.0
+    last_val = 0.0
+    rotary = 0.0
+    launch_arrow = False
+    launch_force = 0
     # Temporary fix for preventing parsing errors
     # Waits two seconds to let IMU program start
     while x < 100:
         x+=1
         ln = p.stdout.readline()
-        time.sleep(0.020)
+        time.sleep(0.005)
 
         
     while True:
+        #Collect force sensor data
+        value = mcp.read_adc(1)
+        if value <= threshold:
+            force_val = 0.0
+        else:
+            last_val = force_val
+            if value <= 600:
+                force_val = ((value - threshold)/(max_limit - threshold))**gamma1
+            else:
+                force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
+        force_val = force_val * 100
+        if (last_val - force_val) > 50:
+            launch_arrow = True
+            launch_value = last_val
+        else:
+            launch_arrow = False
+            launch_value = 0
+        #Read raw potentiometer value
+        rotary = mcp.read_adc(0)
+        rotary = (rotary/1023.0)*100
         count = 0
         i1 = 0
         i2 = 0
@@ -56,8 +91,8 @@ def main():
 
 
         #print ("%.2f               %.2f                %.2f" %roll,pitch,yaw)
-        print(roll,pitch,yaw)
-        time.sleep(0.020)
+        print(roll,pitch,yaw,launch_arrow,launch_value)
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     main()

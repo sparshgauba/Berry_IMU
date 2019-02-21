@@ -21,7 +21,7 @@
 
 #define THRES_A 8000 // Raw Acc Noise Floor
 #define THRES_A_DELTA 30 //Acc Delta Floor
-#define THRES_G 30  // Raw Gyr Noise Floor
+#define THRES_G 80  // Raw Gyr Noise Floor
 
 // System constants
 #define deltat 0.005f // sampling period in seconds (shown as 25 ms)
@@ -124,7 +124,9 @@ int main(int argc, char *argv[])
 
   int startInt;
   struct  timeval tvBegin, tvEnd,tvDiff;
+  int print_counter = 0;
 
+  int gesture_state = 0;
   signal(SIGINT, INThandler);
 
   detectIMU();
@@ -214,7 +216,7 @@ int main(int argc, char *argv[])
       //printf("%lf,%lf,%lf\n", angle_x, angle_y, angle_z);
       
       //Outputs the filtered accelerometer values
-      printf("%d,%d,%d\n", a_x[0], a_y[0], a_z[0]);
+      //printf("%d,%d,%d\n", a_x[0], a_y[0], a_z[0]);
 
       //Outputs the filtered gyroscope values
       //printf("%d,%d,%d\n", g_x, g_y, g_z);
@@ -233,12 +235,39 @@ int main(int argc, char *argv[])
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
 
+      // Melee Gesture Detection
+      if (gesture_state == 0 && acc_norm[2] < -12000)
+      {
+	  gesture_state = 1;
+	  gesture_timer = 50;
+      }
+      else if (gesture_state == 1 && acc_norm[2] > 12000 && gesture_timer)
+      {
+	  gesture_state = 2;
+	  gesture_timer = 50;
+      }
+      else if (gesture_state == 2 && acc_norm[2] < -12000 && gesture_timer)
+      {
+	  gesture_state = 3;
+	  gesture_timer = 50;
+      }
+      else if (gesture_state == 2 && acc_norm[2] < -12000 && gesture_timer)
+      {
+	  gesture_state = 4;
+	  gesture_timer = 50;
+      }
+
 
       //printf("%7d            %7d            %7d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
-      //printf("%d,%d,%d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
+      printf("%d,%d,%d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+      if (print_counter == 4)
+      {
+      	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+        print_counter = 0;
+      }
+      print_counter++;
       //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0], madAngles[1], madAngles[2]);
       //fprintf(stdout,"%.3f,%.3f,%.3f,%.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
 
@@ -302,7 +331,7 @@ long long * calibrate_acc()
   ret[2] = (-16384 - (ret[2]/100));
   //ret[3] is the calculated raw value that corresponds to 1 G
   ret[3] = (int64_t)sqrt( pow(ret[0],2) + pow(ret[1],2) + pow(16384,2));
-  printf("acc calibration values: %d,%d,%d,%d\n", ret[0],ret[1],ret[2],ret[3]);
+  printf("acc calibration values: %lld,%lld,%lld,%lld\n", ret[0],ret[1],ret[2],ret[3]);
   return ret;
 }
 
@@ -326,7 +355,7 @@ long long *calibrate_gyr()
   ret[0] = ret[0]/100;
   ret[1] = ret[1]/100;
   ret[2] = ret[2]/100;
-  printf("gyr calibration values: %d,%d,%d\n", ret[0],ret[1],ret[2]);
+  printf("gyr calibration values: %lld,%lld,%lld\n", ret[0],ret[1],ret[2]);
   return ret;
 }
 
