@@ -127,6 +127,9 @@ int main(int argc, char *argv[])
   int print_counter = 0;
 
   int gesture_state = 0;
+  int gesture_timer = 0;
+  int gesture_melee = 0;
+  
   signal(SIGINT, INThandler);
 
   detectIMU();
@@ -251,20 +254,32 @@ int main(int argc, char *argv[])
 	  gesture_state = 3;
 	  gesture_timer = 50;
       }
-      else if (gesture_state == 2 && acc_norm[2] < -12000 && gesture_timer)
+      else if (gesture_state == 3 && acc_norm[2] > 12000 && gesture_timer)
       {
+          gesture_melee = 1;
 	  gesture_state = 4;
 	  gesture_timer = 50;
       }
+      else if (gesture_state == 4)
+      {
+	  fprintf(stdout,"%.3f,%.3f,%.3f,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee);
+	  gesture_melee = 0;
+	  gesture_state = 0;
+	  gesture_timer = 0;
+      }
+
+      if (gesture_timer > 0)
+	gesture_timer--;
 
 
       //printf("%7d            %7d            %7d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
-      printf("%d,%d,%d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
+      //printf("%d,%d,%d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 4)
+      if (print_counter == 3)
       {
-      	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+      	fprintf(stdout,"%.3f,%.3f,%.3f,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee);
+	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
         print_counter = 0;
       }
       print_counter++;

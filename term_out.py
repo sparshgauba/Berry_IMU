@@ -25,6 +25,7 @@ def main():
     roll = 0.0
     pitch = 0.0
     yaw = 0.0
+    melee = 0
     x = 0
     CLK  = 18
     MISO = 23
@@ -73,25 +74,30 @@ def main():
         count = 0
         i1 = 0
         i2 = 0
+        i3 = 0
 
         ln = p.stdout.readline()
 
         for i in ln:
             count += 1
-            if i == ',' and i1 == 0 and i2 == 0:
+            if i == ',' and i1 == 0 and i2 == 0 and i3 == 0:
                 roll =  float(ln[0:count-1])
                 i1 = count
                 continue
-            if i == ',' and i1 != 0 and i2 == 0:
+            if i == ',' and i1 != 0 and i2 == 0 and i3 == 0:
                 pitch = float(ln[i1:count-1])
                 i2 = count
                 continue
-            if count == len(ln):
+            if i == ',' and i1 != 0 and i2 != 0 and i3 == 0:
                 yaw = float(ln[i2:count-1])
+                i3 = count
+                continue
+            if count == len(ln):
+                melee = int(ln[i2:count-1])
 
 
         #print ("%.2f               %.2f                %.2f" %roll,pitch,yaw)
-        print(roll,pitch,yaw,launch_arrow,launch_value)
+        print(roll,pitch,yaw,melee,launch_arrow,launch_value)
         time.sleep(0.01)
 
 if __name__ == "__main__":
