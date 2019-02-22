@@ -65,7 +65,7 @@ def collect(sensor_socket, ADDRESS, signal):
         for i in ln:
             count += 1
             if i == ',' and i1 == 0 and i2 == 0:
-                roll =  float(ln[0:count-1])
+                roll =  float(ln[0:count-1]) + 90.0
                 i1 = count
                 continue
             if i == ',' and i1 != 0 and i2 == 0:
@@ -75,7 +75,7 @@ def collect(sensor_socket, ADDRESS, signal):
             if count == len(ln):
                 yaw = float(ln[i2:count-1])
 
-        package = {"angle1": (roll), "angle2": (pitch), "angle3": (yaw), "force": force_val}
+        package = {"angle1": (roll), "angle2": (pitch), "angle3": (-yaw), "force": force_val}
         package_string = json.dumps(package)
         sensor_socket.sendto(package_string, ADDRESS)
         time.sleep(0.02)
