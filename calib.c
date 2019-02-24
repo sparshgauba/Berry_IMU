@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 #include "quaternion.h"
-#define DT 0.008         // [s/loop] loop period in sec
+#define DT 0.004         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -24,7 +24,7 @@
 #define THRES_G 80  // Raw Gyr Noise Floor
 
 // System constants
-#define deltat 0.008f // sampling period in seconds (shown as 25 ms)
+#define deltat 0.004f // sampling period in seconds (shown as 25 ms)
 #define gyroMeasError 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define gyroMeasDrift 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
@@ -126,10 +126,15 @@ int main(int argc, char *argv[])
   struct  timeval tvBegin, tvEnd,tvDiff;
   int print_counter = 0;
 
-  int gesture_state = 0;
-  int gesture_timer = 0;
+  //State machine variables
+  int melee_state = 0;
+  int melee_timer = 0;
   int gesture_melee = 0;
-  
+
+  int reload_state = 0;
+  int reload_timer = 0;
+  int gesture_reload = 0;
+
   signal(SIGINT, INThandler);
 
   detectIMU();
@@ -219,7 +224,7 @@ int main(int argc, char *argv[])
       //printf("%lf,%lf,%lf\n", angle_x, angle_y, angle_z);
       
       //Outputs the filtered accelerometer values
-      //printf("%d,%d,%d\n", a_x[0], a_y[0], a_z[0]);
+      //printf("%5d,%5d,%5d\t", a_x[0], a_y[0], a_z[0]);
 
       //Outputs the filtered gyroscope values
       //printf("%d,%d,%d\n", g_x, g_y, g_z);
@@ -230,56 +235,96 @@ int main(int argc, char *argv[])
                        (float)a_x[0], (float)a_y[0], (float)a_z[0], 
                        (float)magRaw[0], (float)magRaw[1], (float)magRaw[2]);
       computeAngles();
-      quaternion_rotate(0, 0, 16384, SEq_1, SEq_2, SEq_3, SEq_4, &acc_norm_inv[0], &acc_norm_inv[1], &acc_norm_inv[2]);
-      acc_norm[0] = a_x[0] - (int)(acc_norm_inv[0]);
-      acc_norm[1] = a_y[0] - (int)(acc_norm_inv[1]);
-      acc_norm[2] = a_z[0] - (int)(acc_norm_inv[2]);
+      acc_norm[1] = a_y[0] + 16600*sinf(madAngles[0]);
+      acc_norm[2] = a_z[0] - 16384*cosf(madAngles[0]);
+      acc_norm[0] = a_x[0] - 16600*sinf(madAngles[1]);
       acc_norm[0] = abs(acc_norm[0]) < THRES_A ? 0 : acc_norm[0];
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
 
-      // Melee Gesture Detection
-      if (gesture_state == 0 && acc_norm[2] < -12000)
+      // Melee Gesture Detection State Machine
+      if (melee_state == 0 && acc_norm[2] < -12000)
       {
-	  gesture_state = 1;
-	  gesture_timer = 50;
+	  melee_state = 1;
+	  melee_timer = 100;
       }
-      else if (gesture_state == 1 && acc_norm[2] > 12000 && gesture_timer)
+      else if (melee_state == 1 && acc_norm[2] > 12000 && melee_timer)
       {
-	  gesture_state = 2;
-	  gesture_timer = 50;
+	  melee_state = 2;
+	  melee_timer = 100;
       }
-      else if (gesture_state == 2 && acc_norm[2] < -12000 && gesture_timer)
+      else if (melee_state == 2 && acc_norm[2] < -12000 && melee_timer)
       {
-	  gesture_state = 3;
-	  gesture_timer = 50;
+	  melee_state = 3;
+	  melee_timer = 100;
       }
-      else if (gesture_state == 3 && acc_norm[2] > 12000 && gesture_timer)
+      else if (melee_state == 3 && acc_norm[2] > 12000 && melee_timer)
       {
           gesture_melee = 1;
-	  gesture_state = 4;
-	  gesture_timer = 50;
+	  melee_state = 4;
+	  melee_timer = 100;
       }
-      else if (gesture_state == 4)
+      else if (melee_state == 4)
       {
-	  fprintf(stdout,"%.3f,%.3f,%.3f,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee);
-	  gesture_melee = 0;
-	  gesture_state = 0;
-	  gesture_timer = 0;
+	  fprintf(stderr,"=======================================\n");
+	  melee_state = 0;
+	  melee_timer = 0;
       }
-      printf("Gesture State: %d          Timer: %d          Melee: %d\n", gesture_state, gesture_timer, gesture_melee);
+      //printf("Gesture State: %d          Timer: %d          Melee: %d\t", gesture_state, gesture_timer, gesture_melee);
 
-      if (gesture_timer > 0)
-	gesture_timer--;
+      if (melee_timer == 0)
+	  melee_state = 0;
+      else
+	  melee_timer--;
+
+      // Reload Gesture Detection State Machine
+      if (reload_state == 0 && acc_norm[1] < -9000)
+      {
+          reload_state = 1;
+          reload_timer = 100;
+      }
+      else if (reload_state == 1 && acc_norm[1] > 9000 && reload_timer)
+      {
+          reload_state = 2;
+          reload_timer = 100;
+      }
+      else if (reload_state == 2 && acc_norm[1] < -9000 && reload_timer)
+      {
+          reload_state = 3;
+          reload_timer = 100;
+      }
+      else if (reload_state == 3 && acc_norm[1] > 9000 && reload_timer)
+      {
+          gesture_reload = 1;
+          reload_state = 4;
+          reload_timer = 100;
+      }
+      else if (reload_state == 4)
+      {
+          fprintf(stderr,"||||||||||||||||||||||||||||||||||||||||||||\n");
+          reload_state = 0;
+          reload_timer = 0;
+      }
+      //printf("Gesture State: %d          Timer: %d          Melee: %d\t", gesture_state, gesture_timer, gesture_melee);
+
+      if (reload_timer == 0)
+          reload_state = 0;
+      else
+          reload_timer--;
+
+
+
 
 
       //printf("%7d            %7d            %7d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
-      //printf("%d,%d,%d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
+      //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 3)
+      if (print_counter == 6)
       {
-      	//fprintf(stdout,"%.3f,%.3f,%.3f,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee);
+      	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
+        gesture_melee = 0;
+        gesture_reload = 0;
 	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
         print_counter = 0;
       }
@@ -289,7 +334,7 @@ int main(int argc, char *argv[])
 
       
 
-      //Each loop should be at least 20ms.
+      //Each loop should be at most 20ms.
       while(mymillis() - startInt < (DT*1000))
       {
 	  usleep(100);
