@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 #include "quaternion.h"
-#define DT 0.004         // [s/loop] loop period in sec
+#define DT 0.01         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -24,7 +24,7 @@
 #define THRES_G 80  // Raw Gyr Noise Floor
 
 // System constants
-#define deltat 0.004f // sampling period in seconds (shown as 25 ms)
+#define deltat 0.01f // sampling period in seconds (shown as 25 ms)
 #define gyroMeasError 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define gyroMeasDrift 3.14159265358979f * (0.0f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
@@ -320,12 +320,12 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 6)
+      if (print_counter == 1)
       {
-      	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
+      	//fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
         gesture_melee = 0;
         gesture_reload = 0;
-	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+	fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
         print_counter = 0;
       }
       print_counter++;
@@ -625,7 +625,22 @@ float InvSqrt(float x)
 
 void computeAngles()
 {
-  madAngles[0] = atan2f(SEq_1*SEq_2 + SEq_3*SEq_4, 0.5f - SEq_2*SEq_2 - SEq_3*SEq_3);
+  float y0 = SEq_1*SEq_2 + SEq_3*SEq_4;
+  float x0 = 0.5f - SEq_2*SEq_2 - SEq_3*SEq_3;
+  float y2 = SEq_2*SEq_3 + SEq_1*SEq_4;
+  float x2 = 0.5f - SEq_3*SEq_3 - SEq_4*SEq_4;
+  if (y0 < 0.02 && y0 > -0.02 && x0 < 0.05 && x0 > -0.05 && x0 > 0)
+      x0 = 0.5*expf(-50*x0);
+  else if (y0 < 0.02 && y0 > -0.02 && x0 < 0.05 && x0 > -0.05 && x0 < 0)
+      x0 = -0.5*expf(50*x0);
+  if (y2 < 0.02 && y2 > -0.02 && x2 < 0.05 && x2 > -0.05 && x2 > 0)
+      x2 = 0.5*expf(-50*x2);
+  else if (y2 < 0.02 && y2 > -0.02 && x2 < 0.05 && x2 > -0.05 && x2 < 0)
+      x2 = -0.5*expf(50*x2);
+  printf("%f,%f,",x0,x2);
+  madAngles[0] = atan2f(y0, x0);
   madAngles[1] = asinf(-2.0f * (SEq_2*SEq_4 - SEq_1*SEq_3));
-  madAngles[2] = atan2f(SEq_2*SEq_3 + SEq_1*SEq_4, 0.5f - SEq_3*SEq_3 - SEq_4*SEq_4);
+  madAngles[2] = atan2f(y2, x2);
+  if ((SEq_1*SEq_1+SEq_4*SEq_4) < (SEq_2*SEq_2+SEq_3*SEq_3))
+      madAngles[1] = -madAngles[1];
 }
