@@ -278,22 +278,22 @@ int main(int argc, char *argv[])
 	  melee_timer--;
 
       // Reload Gesture Detection State Machine
-      if (reload_state == 0 && acc_norm[1] < -9000)
+      if (reload_state == 0 && acc_norm[1] < -10000)
       {
           reload_state = 1;
           reload_timer = 100;
       }
-      else if (reload_state == 1 && acc_norm[1] > 9000 && reload_timer)
+      else if (reload_state == 1 && acc_norm[1] > 10000 && reload_timer)
       {
           reload_state = 2;
           reload_timer = 100;
       }
-      else if (reload_state == 2 && acc_norm[1] < -9000 && reload_timer)
+      else if (reload_state == 2 && acc_norm[1] < -10000 && reload_timer)
       {
           reload_state = 3;
           reload_timer = 100;
       }
-      else if (reload_state == 3 && acc_norm[1] > 9000 && reload_timer)
+      else if (reload_state == 3 && acc_norm[1] > 10000 && reload_timer)
       {
           gesture_reload = 1;
           reload_state = 4;
@@ -322,10 +322,10 @@ int main(int argc, char *argv[])
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
       if (print_counter == 2)
       {
-      	//fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
+      	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
         gesture_melee = 0;
         gesture_reload = 0;
-	fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
         print_counter = 0;
       }
       print_counter++;
