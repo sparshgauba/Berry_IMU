@@ -1,4 +1,4 @@
-#!/usr/bin/python  
+#!/usr/bin/python
 import socket
 import threading
 import time
@@ -27,7 +27,7 @@ def socket_create():
 def data_collect():
 	##Sending signals through Pi socket
 	PORT = 10000
-	SERVER_ADDRESS = "131.179.39.163"
+	SERVER_ADDRESS = "131.179.26.27"
 	ADDRESS = (SERVER_ADDRESS, PORT)
 	##Start sequence to establish connection
 	for _ in range(3):

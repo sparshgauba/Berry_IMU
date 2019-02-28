@@ -21,6 +21,7 @@ def handler(signum, frame):
 def main():
     signal.signal(signal.SIGINT, handler)
     # Starts IMU process
+    time.sleep(2)
     p = subprocess.Popen("./calib", stdout=subprocess.PIPE)
     roll = 0.0
     pitch = 0.0
@@ -36,7 +37,7 @@ def main():
     threshold = 600
     gamma1 = 2.5
     gamma2 = 0.65
-    max_limit = 930.0
+    max_limit = 950.0
     gain = 0.4
     value = 0
     force_val = 0.0
@@ -66,7 +67,7 @@ def main():
             else:
                 force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
         force_val = force_val * 100
-        if (last_val - value) > 50:
+        if (last_val - value) > 100:
             launch_arrow = True
             launch_value = last_force
         else:
@@ -106,8 +107,8 @@ def main():
 
 
         #print ("%.2f               %.2f                %.2f" %roll,pitch,yaw)
-        print(roll,pitch,yaw,melee,arrow_load,launch_arrow,launch_value)
-        time.sleep(0.01)
+        print(roll-90,pitch,yaw,melee,arrow_load,launch_arrow,launch_value)
+        #time.sleep(0.01)
 
 if __name__ == "__main__":
     main()

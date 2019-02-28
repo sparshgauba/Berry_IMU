@@ -243,26 +243,26 @@ int main(int argc, char *argv[])
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
 
       // Melee Gesture Detection State Machine
-      if (melee_state == 0 && acc_norm[2] < -12000)
+      if (melee_state == 0 && acc_norm[2] < -11000 && !gesture_melee)
       {
 	  melee_state = 1;
-	  melee_timer = 100;
+	  melee_timer = 30;
       }
-      else if (melee_state == 1 && acc_norm[2] > 12000 && melee_timer)
+      else if (melee_state == 1 && acc_norm[2] > 11000 && melee_timer)
       {
 	  melee_state = 2;
-	  melee_timer = 100;
+	  melee_timer = 30;
       }
-      else if (melee_state == 2 && acc_norm[2] < -12000 && melee_timer)
+      else if (melee_state == 2 && acc_norm[2] > 11000 && melee_timer && melee_timer < 20)
       {
 	  melee_state = 3;
-	  melee_timer = 100;
+	  melee_timer = 30;
       }
-      else if (melee_state == 3 && acc_norm[2] > 12000 && melee_timer)
+      else if (melee_state == 3 && acc_norm[2] < -11000 && melee_timer)
       {
           gesture_melee = 1;
 	  melee_state = 4;
-	  melee_timer = 100;
+	  melee_timer = 30;
       }
       else if (melee_state == 4)
       {
@@ -278,26 +278,26 @@ int main(int argc, char *argv[])
 	  melee_timer--;
 
       // Reload Gesture Detection State Machine
-      if (reload_state == 0 && acc_norm[1] < -10000)
+      if (reload_state == 0 && acc_norm[1] > 9000 && !gesture_reload)
       {
           reload_state = 1;
-          reload_timer = 100;
+          reload_timer = 30;
       }
-      else if (reload_state == 1 && acc_norm[1] > 10000 && reload_timer)
+      else if (reload_state == 1 && acc_norm[1] < -9000 && reload_timer && reload_timer < 20)
       {
           reload_state = 2;
-          reload_timer = 100;
+          reload_timer = 30;
       }
-      else if (reload_state == 2 && acc_norm[1] < -10000 && reload_timer)
+      else if (reload_state == 2 && acc_norm[1] < -9000 && reload_timer)
       {
           reload_state = 3;
-          reload_timer = 100;
+          reload_timer = 30;
       }
-      else if (reload_state == 3 && acc_norm[1] > 10000 && reload_timer)
+      else if (reload_state == 3 && acc_norm[1] > 9000 && reload_timer)
       {
           gesture_reload = 1;
           reload_state = 4;
-          reload_timer = 100;
+          reload_timer = 30;
       }
       else if (reload_state == 4)
       {
@@ -320,12 +320,15 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 2)
+      if (print_counter == 1)
       {
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
         gesture_melee = 0;
         gesture_reload = 0;
 	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+        //fprintf(stderr,"\t%5d,%5d,%5d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
+	//fprintf(stderr,"\t\tM State: %d   M Timer: %d   M val: %d      R State: %d   R Timer: %d   R val: %d\n", melee_state, melee_timer, gesture_melee, reload_state, reload_timer, gesture_reload);
+        //fprintf(stderr,"%.3f,%.3f,%.3f,%.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
         print_counter = 0;
       }
       print_counter++;
@@ -629,6 +632,7 @@ void computeAngles()
   float x0 = 0.5f - SEq_2*SEq_2 - SEq_3*SEq_3;
   float y2 = SEq_2*SEq_3 + SEq_1*SEq_4;
   float x2 = 0.5f - SEq_3*SEq_3 - SEq_4*SEq_4;
+  /*
   if (y0 < 0.02 && y0 > -0.02 && x0 < 0.07 && x0 > -0.07 && x0 > 0)
       x0 = 0.5*expf(-25*x0);
   else if (y0 < 0.02 && y0 > -0.02 && x0 < 0.07 && x0 > -0.07 && x0 < 0)
@@ -637,10 +641,12 @@ void computeAngles()
       x2 = 0.5*expf(-25*x2);
   else if (y2 < 0.02 && y2 > -0.02 && x2 < 0.07 && x2 > -0.07 && x2 < 0)
       x2 = -0.5*expf(25*x2);
+  */
   //printf("%f,%f,",x0,x2);
   madAngles[0] = atan2f(y0, x0);
   madAngles[1] = asinf(-2.0f * (SEq_2*SEq_4 - SEq_1*SEq_3));
   madAngles[2] = atan2f(y2, x2);
+  /*
   if ((SEq_1*SEq_1+SEq_4*SEq_4) < (SEq_2*SEq_2+SEq_3*SEq_3))
       madAngles[1] = -madAngles[1];
   if (y0 < 0.07 && y0 > -0.07 && x0 < 0.02 && x0 > -0.02 && x0 > 0)
@@ -651,4 +657,5 @@ void computeAngles()
       madAngles[2] = 1.570796;
   else if (y2 < 0.07 && y2 > -0.07 && x2 < 0.02 && x2 > -0.02 && x2 < 0)
       madAngles[2] = -1.570796;
+  */
 }

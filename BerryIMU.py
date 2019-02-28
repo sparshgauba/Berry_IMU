@@ -38,6 +38,7 @@ def collect(sensor_socket, ADDRESS, signal):
     rotary = 0.0
     launch_arrow = False
     launch_force = 0
+    time.sleep(2)
     # Starts IMU process
     p = subprocess.Popen("./calib", stdout=subprocess.PIPE)
     # Temporary fix for preventing parsing errors
@@ -58,8 +59,7 @@ def collect(sensor_socket, ADDRESS, signal):
                 force_val = ((value - threshold)/(max_limit - threshold))**gamma1
             else:
                 force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
-        force_val = force_val * 100
-        if (last_val - value) > 50:
+        if (last_val - value) > 70:
             launch_arrow = True
             launch_value = last_force
         else:
@@ -96,6 +96,6 @@ def collect(sensor_socket, ADDRESS, signal):
                 continue
             if count == len(ln):
                 arrow_load = int(ln[i4:count-1])
-        package = {"angle1": (roll), "angle2": (pitch), "angle3": (-yaw), "force": launch_value, "launch": arrow_launch, "reload": arrow_load, "melee": melee}
+        package = {"angle1": (roll+90), "angle2": (pitch), "angle3": (-yaw), "force": launch_value, "launch": launch_arrow, "reload": arrow_load, "melee": melee}
         package_string = json.dumps(package)
         sensor_socket.sendto(package_string, ADDRESS)
