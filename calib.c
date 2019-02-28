@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 1)
+      if (print_counter == 2)
       {
       	//fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
         gesture_melee = 0;
@@ -629,18 +629,26 @@ void computeAngles()
   float x0 = 0.5f - SEq_2*SEq_2 - SEq_3*SEq_3;
   float y2 = SEq_2*SEq_3 + SEq_1*SEq_4;
   float x2 = 0.5f - SEq_3*SEq_3 - SEq_4*SEq_4;
-  if (y0 < 0.02 && y0 > -0.02 && x0 < 0.05 && x0 > -0.05 && x0 > 0)
-      x0 = 0.5*expf(-50*x0);
-  else if (y0 < 0.02 && y0 > -0.02 && x0 < 0.05 && x0 > -0.05 && x0 < 0)
-      x0 = -0.5*expf(50*x0);
-  if (y2 < 0.02 && y2 > -0.02 && x2 < 0.05 && x2 > -0.05 && x2 > 0)
-      x2 = 0.5*expf(-50*x2);
-  else if (y2 < 0.02 && y2 > -0.02 && x2 < 0.05 && x2 > -0.05 && x2 < 0)
-      x2 = -0.5*expf(50*x2);
-  printf("%f,%f,",x0,x2);
+  if (y0 < 0.02 && y0 > -0.02 && x0 < 0.07 && x0 > -0.07 && x0 > 0)
+      x0 = 0.5*expf(-25*x0);
+  else if (y0 < 0.02 && y0 > -0.02 && x0 < 0.07 && x0 > -0.07 && x0 < 0)
+      x0 = -0.5*expf(25*x0);
+  if (y2 < 0.02 && y2 > -0.02 && x2 < 0.07 && x2 > -0.07 && x2 > 0)
+      x2 = 0.5*expf(-25*x2);
+  else if (y2 < 0.02 && y2 > -0.02 && x2 < 0.07 && x2 > -0.07 && x2 < 0)
+      x2 = -0.5*expf(25*x2);
+  //printf("%f,%f,",x0,x2);
   madAngles[0] = atan2f(y0, x0);
   madAngles[1] = asinf(-2.0f * (SEq_2*SEq_4 - SEq_1*SEq_3));
   madAngles[2] = atan2f(y2, x2);
   if ((SEq_1*SEq_1+SEq_4*SEq_4) < (SEq_2*SEq_2+SEq_3*SEq_3))
       madAngles[1] = -madAngles[1];
+  if (y0 < 0.07 && y0 > -0.07 && x0 < 0.02 && x0 > -0.02 && x0 > 0)
+      madAngles[0] = 1.570796;
+  else if (y0 < 0.07 && y0 > -0.07 && x0 < 0.02 && x0 > -0.02 && x0 < 0)
+      madAngles[0] = -1.570796;
+  if (y2 < 0.07 && y2 > -0.07 && x2 < 0.02 && x2 > -0.02 && x2 > 0)
+      madAngles[2] = 1.570796;
+  else if (y2 < 0.07 && y2 > -0.07 && x2 < 0.02 && x2 > -0.02 && x2 < 0)
+      madAngles[2] = -1.570796;
 }
