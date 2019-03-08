@@ -28,9 +28,7 @@ def collect(sensor_socket, ADDRESS, signal):
     mcp = Adafruit_MCP3008.MCP3008(clk=CLK, cs=CS, miso=MISO, mosi=MOSI)
     threshold = 600
     gamma1 = 2.5
-    gamma2 = 0.65
-    max_limit = 930.0
-    gain = 0.4
+    max_limit = 870.0
     value = 0
     force_val = 0.0
     last_val = 0
@@ -38,7 +36,7 @@ def collect(sensor_socket, ADDRESS, signal):
     rotary = 0.0
     launch_arrow = False
     launch_force = 0
-    time.sleep(2)
+    time.sleep(3)
     # Starts IMU process
     p = subprocess.Popen("./calib", stdout=subprocess.PIPE)
     # Temporary fix for preventing parsing errors
@@ -55,16 +53,15 @@ def collect(sensor_socket, ADDRESS, signal):
         if value <= threshold:
             force_val = 0.0
         else:
-            if value <= 800:
-                force_val = ((value - threshold)/(max_limit - threshold))**gamma1
-            else:
-                force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
-        if (last_val - value) > 70:
+            force_val = ((value - threshold)/(max_limit - threshold))**gamma1
+        if force_val > 1:
+            force_val = 1
+        if last_val > 600 and (last_val - value) > 70:
             launch_arrow = True
             launch_value = last_force
         else:
             launch_arrow = False
-            launch_value = 0
+            launch_value = force_val
         #Read raw potentiometer value
         rotary = mcp.read_adc(0)
         rotary = (rotary/1023.0)*100

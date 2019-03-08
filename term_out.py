@@ -36,9 +36,9 @@ def main():
     mcp = Adafruit_MCP3008.MCP3008(clk=CLK, cs=CS, miso=MISO, mosi=MOSI)
     threshold = 600
     gamma1 = 2.5
-    gamma2 = 0.65
-    max_limit = 950.0
-    gain = 0.4
+    gamma2 = 2.65
+    max_limit = 867.0
+    gain = 1
     value = 0
     force_val = 0.0
     last_val = 0
@@ -62,12 +62,13 @@ def main():
         if value <= threshold:
             force_val = 0.0
         else:
-            if value <= 800:
+            if value <= 1023:
                 force_val = ((value - threshold)/(max_limit - threshold))**gamma1
-            else:
-                force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold - 50)/(max_limit - threshold))**gamma2
-        force_val = force_val * 100
-        if (last_val - value) > 100:
+            #else:
+                #force_val = ((value - threshold)/(max_limit - threshold))**gamma1 + gain*((value - threshold)/(max_limit - threshold))**gamma2
+        if force_val > 1:
+            force_val =1
+        if (last_val - value) > 70:
             launch_arrow = True
             launch_value = last_force
         else:
@@ -107,7 +108,9 @@ def main():
 
 
         #print ("%.2f               %.2f                %.2f" %roll,pitch,yaw)
-        print(roll-90,pitch,yaw,melee,arrow_load,launch_arrow,launch_value)
+        #if launch_value > 0:
+        #    print(roll-90,pitch,yaw,melee,arrow_load,launch_arrow,launch_value)
+        print(force_val, value)
         #time.sleep(0.01)
 
 if __name__ == "__main__":
