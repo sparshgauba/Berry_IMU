@@ -261,67 +261,55 @@ int main(int argc, char *argv[])
           SEq_1 = 0.707;
           SEq_2 = -0.707;
           SEq_3 = SEq_4 = 0;
-	  reorient = 0;
+	  	  reorient = 0;
       }
-      if (reorient_timer > 0)
-	  reorient_timer--;
-      //fprintf(stderr,"\t\t\t\t\t\t%d\t%d\n",reorient, reorient_timer);
-      // Melee Gesture Detection State Machine
-      if (melee_state == 0 && acc_norm[2] < -10000 && !gesture_melee)
+      else if (melee_state == 0 && acc_norm[2] < -15000 && !gesture_melee)
       {
-	  melee_state = 1;
-	  melee_timer = 75;
+		  melee_state = 1;
+		  melee_timer = 100;
       }
-      else if (melee_state == 1 && acc_norm[2] > 10000 && melee_timer)
+      else if (melee_state == 1 && acc_norm[2] > 8000 && melee_timer)
       {
-	  melee_state = 2;
-	  melee_timer = 75;
+		  melee_state = 2;
+		  melee_timer = 100;
       }
-      else if (melee_state == 2 && acc_norm[2] > 10000 && melee_timer && melee_timer < 50)
+      else if (melee_state == 2 && acc_norm[2] > 8000 && melee_timer && melee_timer < 50)
       {
-	  melee_state = 3;
-	  melee_timer = 75;
+		  melee_state = 3;
+		  melee_timer = 100;
       }
-      else if (melee_state == 3 && acc_norm[2] < -10000 && melee_timer)
+      else if (melee_state == 3 && acc_norm[2] < -8000 && melee_timer)
       {
           gesture_melee = 1;
-	  melee_state = 4;
-	  melee_timer = 75;
+		  melee_state = 4;
+		  melee_timer = 100;
       }
       else if (melee_state == 4)
       {
-	  fprintf(stderr,"==========================================================================================\n==========================================================================================\n");
-	  melee_state = 0;
-	  melee_timer = 0;
+		  fprintf(stderr,"==========================================================================================\n==========================================================================================\n");
+		  melee_state = 0;
+		  melee_timer = 0;
       }
-      //printf("Gesture State: %d          Timer: %d          Melee: %d\t", gesture_state, gesture_timer, gesture_melee);
-
-      if (melee_timer == 0)
-	  melee_state = 0;
-      else
-	  melee_timer--;
-
-      // Reload Gesture Detection State Machine
-      if (reload_state == 0 && acc_norm[1] > 9000 && !gesture_reload)
+      else if (reload_state == 0 && acc_norm[1] > 15000 && !gesture_reload)
       {
           reload_state = 1;
-          reload_timer = 75;
+          reload_timer = 100;
       }
-      else if (reload_state == 1 && acc_norm[1] < -9000 && reload_timer && reload_timer < 50)
+      else if (reload_state == 1 && acc_norm[1] < -8000 && reload_timer && reload_timer < 50)
       {
           reload_state = 2;
-          reload_timer = 75;
+          reload_timer = 100;
       }
-      else if (reload_state == 2 && acc_norm[1] < -9000 && reload_timer)
+      else if (reload_state == 2 && acc_norm[1] < -8000 && reload_timer)
       {
           reload_state = 3;
-          reload_timer = 75;
+          reload_timer = 100;
       }
-      else if (reload_state == 3 && acc_norm[1] > 9000 && reload_timer)
+      else if (reload_state == 3 && acc_norm[1] > 8000 && reload_timer)
       {
           gesture_reload = 1;
           reload_state = 4;
-          reload_timer = 75;
+          reload_timer = 100;
       }
       else if (reload_state == 4)
       {
@@ -329,6 +317,16 @@ int main(int argc, char *argv[])
           reload_state = 0;
           reload_timer = 0;
       }
+      if (reorient_timer > 0)
+	  reorient_timer--;
+      //fprintf(stderr,"\t\t\t\t\t\t%d\t%d\n",reorient, reorient_timer);
+      //printf("Gesture State: %d          Timer: %d          Melee: %d\t", gesture_state, gesture_timer, gesture_melee);
+
+      if (melee_timer == 0)
+	  melee_state = 0;
+      else
+	  melee_timer--;
+      
       //printf("Gesture State: %d          Timer: %d          Melee: %d\t", gesture_state, gesture_timer, gesture_melee);
 
       if (reload_timer == 0)
@@ -336,15 +334,11 @@ int main(int argc, char *argv[])
       else
           reload_timer--;
 
-
-
-
-
       //printf("%7d            %7d            %7d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 6)
+      if (print_counter == 2)
       {
 	//madAngles[0] = asin2f((float)sqrt(a_y[0]*a_y[0] + a_x[0]*a_x[0]),(float)a_z[0]);
       	//fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
