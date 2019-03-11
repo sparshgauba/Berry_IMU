@@ -20,8 +20,8 @@
 #define M_PI 3.14159265358979323846
 
 #define THRES_A 8000 // Raw Acc Noise Floor
-#define THRES_A_DELTA 30 //Acc Delta Floor
-#define THRES_G 18  // Raw Gyr Noise Floor
+#define THRES_A_DELTA 40 //Acc Delta Floor
+#define THRES_G 40  // Raw Gyr Noise Floor
 
 // System constants
 #define deltat 0.00413f // sampling period in seconds (shown as 25 ms)
@@ -36,12 +36,12 @@
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 1467
-#define magYmax 1259
-#define magZmax 699
-#define magXmin -384
-#define magYmin -619
-#define magZmin -1076
+#define magXmax 1535
+#define magYmax 1296
+#define magZmax 727
+#define magXmin -478
+#define magYmin -719
+#define magZmin -1141
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -246,13 +246,13 @@ int main(int argc, char *argv[])
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
       //Reorient Gesture Detection State Machine
-      if (reorient == 0 && (g_z < -30000 || g_z > 30000))
+      if (reorient == 0 && (g_z < -20000 || g_z > 20000))
       {
-	  //fprintf(stderr,"\t\t\t\tREORIENTATION OF CONTROLLER\n");
+	  fprintf(stderr,"\t\t\t\tREORIENTATION OF CONTROLLER\n");
 	  reorient = 1;
-          reorient_timer = 120;
+          reorient_timer = 150;
       }
-      else if (reorient == 1 && melee_timer == 0)
+      else if (reorient == 1 && reorient_timer == 0)
       {
           reorient = 2;
       }
@@ -261,26 +261,22 @@ int main(int argc, char *argv[])
           SEq_1 = 0.707;
           SEq_2 = -0.707;
           SEq_3 = SEq_4 = 0;
-	  	  reorient = 0;
+	  reorient = 0;
+	  fprintf(stderr,"0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-\n");
       }
       else if (melee_state == 0 && acc_norm[2] < -15000 && !gesture_melee)
       {
 		  melee_state = 1;
 		  melee_timer = 100;
       }
-      else if (melee_state == 1 && acc_norm[2] > 8000 && melee_timer)
+      else if (melee_state == 1 && acc_norm[2] > 10000 && melee_timer)
       {
 		  melee_state = 2;
 		  melee_timer = 100;
       }
-      else if (melee_state == 2 && acc_norm[2] > 8000 && melee_timer && melee_timer < 50)
+      else if (melee_state == 2 && acc_norm[2] > 10000 && melee_timer && melee_timer < 80)
       {
-		  melee_state = 3;
-		  melee_timer = 100;
-      }
-      else if (melee_state == 3 && acc_norm[2] < -8000 && melee_timer)
-      {
-          gesture_melee = 1;
+		  gesture_melee = 1;
 		  melee_state = 4;
 		  melee_timer = 100;
       }
@@ -295,12 +291,12 @@ int main(int argc, char *argv[])
           reload_state = 1;
           reload_timer = 100;
       }
-      else if (reload_state == 1 && acc_norm[1] < -8000 && reload_timer && reload_timer < 50)
+      else if (reload_state == 1 && acc_norm[1] < -8000 && reload_timer)
       {
           reload_state = 2;
           reload_timer = 100;
       }
-      else if (reload_state == 2 && acc_norm[1] < -8000 && reload_timer)
+      else if (reload_state == 2 && acc_norm[1] < -8000 && reload_timer && reload_timer < 80)
       {
           reload_state = 3;
           reload_timer = 100;
@@ -326,7 +322,7 @@ int main(int argc, char *argv[])
 	  melee_state = 0;
       else
 	  melee_timer--;
-      
+
       //printf("Gesture State: %d          Timer: %d          Melee: %d\t", gesture_state, gesture_timer, gesture_melee);
 
       if (reload_timer == 0)
@@ -338,15 +334,16 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 2)
+      if (print_counter == 1)
       {
 	//madAngles[0] = asin2f((float)sqrt(a_y[0]*a_y[0] + a_x[0]*a_x[0]),(float)a_z[0]);
-      	//fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
+      	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
         gesture_melee = 0;
         gesture_reload = 0;
-	//fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-        fprintf(stderr,"\t%5d,%5d,%5d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
-	fprintf(stderr,"\t\tM State: %d   M Timer: %d   M val: %d      R State: %d   R Timer: %d   R val: %d\n", melee_state, melee_timer, gesture_melee, reload_state, reload_timer, gesture_reload);
+	//fprintf(stderr,"%5d,%5d,%5d\n",magRaw[0],magRaw[1],magRaw[2]);
+	//fprintf(stderr,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
+        //fprintf(stderr,"\t%5d,%5d,%5d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
+	//fprintf(stderr,"\t\tM State: %d   M Timer: %d   M val: %d      R State: %d   R Timer: %d   R val: %d\n", melee_state, melee_timer, gesture_melee, reload_state, reload_timer, gesture_reload);
         //fprintf(stderr,"%.3f,%.3f,%.3f,%.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
         print_counter = 0;
 	if (a_x[0] < 500 && a_x[0] > -500 && a_y[0] < 500 && a_y[0] > -500 && g_x == 0 && g_y == 0 && g_z == 0)
@@ -358,8 +355,6 @@ int main(int argc, char *argv[])
       print_counter++;
       //fprintf(stdout,"%.3f,%.3f,%.3f\n", madAngles[0], madAngles[1], madAngles[2]);
       //fprintf(stdout,"%.3f,%.3f,%.3f,%.3f\n", SEq_1, SEq_2, SEq_3, SEq_4);
-
-      
 
       //Each loop should be at most 20ms.
       while(mymillis() - startInt < (DT*1000))
@@ -419,7 +414,7 @@ long long * calibrate_acc()
   //ret[3] is the calculated raw value that corresponds to 1 G
   ret[3] = ret[3]/1000;
   printf("acc calibration values: %lld,%lld,%lld,%lld\n", ret[0],ret[1],ret[2],ret[3]);
-  //ret[0] = ret[1] = ret[2] = 0;
+  ret[0] = ret[1] = ret[2] = 0;
   return ret;
 }
 
@@ -444,6 +439,9 @@ long long *calibrate_gyr()
   ret[1] = ret[1]/1000;
   ret[2] = ret[2]/1000;
   printf("gyr calibration values: %lld,%lld,%lld\n", ret[0],ret[1],ret[2]);
+  ret[0] = -234;
+  ret[1] = -13;
+  ret[2] = -81;
   return ret;
 }
 
