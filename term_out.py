@@ -35,7 +35,7 @@ def main():
     CS   = 25
     mcp = Adafruit_MCP3008.MCP3008(clk=CLK, cs=CS, miso=MISO, mosi=MOSI)
     threshold = 600
-    gamma1 = 2.5
+    gamma1 = 3.5
     gamma2 = 2.65
     max_limit = 867.0
     gain = 1

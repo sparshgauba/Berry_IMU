@@ -27,8 +27,8 @@ def collect(sensor_socket, ADDRESS, signal):
     CS   = 25
     mcp = Adafruit_MCP3008.MCP3008(clk=CLK, cs=CS, miso=MISO, mosi=MOSI)
     threshold = 600
-    gamma1 = 2.5
-    max_limit = 870.0
+    gamma1 = 3.5
+    max_limit = 867.0
     value = 0
     force_val = 0.0
     last_val = 0

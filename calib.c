@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include "IMU.c"
 #include "quaternion.h"
+//#include <termios.h>
 #define DT 0.004         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
@@ -246,6 +247,12 @@ int main(int argc, char *argv[])
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
       //Reorient Gesture Detection State Machine
+      /*if (kbhit())
+      {
+          SEq_1 = 0.707;
+          SEq_2 = -0.707;
+          SEq_3 = SEq_4 = 0;
+      }*/
       if (reorient == 0 && (g_z < -20000 || g_z > 20000))
       {
 	  fprintf(stderr,"\t\t\t\tREORIENTATION OF CONTROLLER\n");
@@ -334,7 +341,7 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 1)
+      if (print_counter == 6)
       {
 	//madAngles[0] = asin2f((float)sqrt(a_y[0]*a_y[0] + a_x[0]*a_x[0]),(float)a_z[0]);
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
