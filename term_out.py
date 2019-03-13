@@ -73,7 +73,7 @@ def main():
             launch_value = last_force
         else:
             launch_arrow = False
-            launch_value = 0
+            launch_value = force_val
         #Read raw potentiometer value
         rotary = mcp.read_adc(0)
         rotary = (rotary/1023.0)*100
@@ -109,8 +109,8 @@ def main():
 
         #print ("%.2f               %.2f                %.2f" %roll,pitch,yaw)
         #if launch_value > 0:
-        #    print(roll-90,pitch,yaw,melee,arrow_load,launch_arrow,launch_value)
-        print(force_val, value)
+        print(roll-90,pitch,yaw,melee,arrow_load,launch_arrow,launch_value)
+        #print(force_val, value)
         #time.sleep(0.01)
 
 if __name__ == "__main__":

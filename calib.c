@@ -9,8 +9,11 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <termios.h>
+#include <sys/types.h>
 #include "IMU.c"
 #include "quaternion.h"
+
 //#include <termios.h>
 #define DT 0.004         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
@@ -37,12 +40,12 @@
 ///////////////MODIFY FOR EVERY USE////////////////////
 ///////////////////////////////////////////////////////
 //Mag Calibration Values
-#define magXmax 1535
-#define magYmax 1296
-#define magZmax 727
-#define magXmin -478
-#define magYmin -719
-#define magZmin -1141
+#define magXmax 1594
+#define magYmax 1372
+#define magZmax 800
+#define magXmin -568
+#define magYmin -787
+#define magZmin -1230
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////
@@ -78,6 +81,10 @@ void inline filterUpdateAHRS(float w_x, float w_y, float w_z, float a_x, float a
 float InvSqrt(float x); // Used to avoid division by zero in filter
 
 void computeAngles();
+
+void changemode(int dir);
+
+int kbhit(void);
 
 int main(int argc, char *argv[])
 {
@@ -138,6 +145,8 @@ int main(int argc, char *argv[])
 
   int reorient_timer = 0;
   int reorient = 0;
+  int mag_init = 0;
+  int mag_z_ref = 0;
 
   signal(SIGINT, INThandler);
 
@@ -246,16 +255,32 @@ int main(int argc, char *argv[])
       acc_norm[0] = abs(acc_norm[0]) < THRES_A ? 0 : acc_norm[0];
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
-      //Reorient Gesture Detection State Machine
-      /*if (kbhit())
+
+      if (mag_init == 2 && magRaw[2] < mag_z_ref + 2 && magRaw[2] > mag_z_ref - 2 && a_y[0] > 16300)
       {
+	SEq_1 = SEq_1 - 0.01*(SEq_1 - 0.707);
+	SEq_2 = SEq_2 - 0.01*(SEq_2 + 0.707);
+	SEq_3 = SEq_3 - 0.01*SEq_3;
+	SEq_4 = SEq_4 - 0.01*SEq_4;;
+	//fprintf(stderr,"\t\t\t\t AUTOREORIENT\n"); 
+      }
+
+      changemode(1);
+      if (kbhit())
+      {
+	  getchar();
           SEq_1 = 0.707;
           SEq_2 = -0.707;
           SEq_3 = SEq_4 = 0;
-      }*/
+	  mag_init = 1;
+      }
+      changemode(0);
+
+
+      
       if (reorient == 0 && (g_z < -20000 || g_z > 20000))
       {
-	  fprintf(stderr,"\t\t\t\tREORIENTATION OF CONTROLLER\n");
+	  //fprintf(stderr,"\t\t\t\tREORIENTATION IS RECALIBRATED\n");
 	  reorient = 1;
           reorient_timer = 150;
       }
@@ -269,8 +294,16 @@ int main(int argc, char *argv[])
           SEq_2 = -0.707;
           SEq_3 = SEq_4 = 0;
 	  reorient = 0;
+	  mag_init = 1;
 	  fprintf(stderr,"0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-\n");
       }
+      else if (mag_init == 1)
+      {
+	  fprintf(stderr, "\t\t\t   NEW REFERENCE TAKEN FOR ORIENTATION\n");
+	  mag_init = 2;
+	  mag_z_ref = magRaw[2];
+      }
+
       else if (melee_state == 0 && acc_norm[2] < -15000 && !gesture_melee)
       {
 		  melee_state = 1;
@@ -341,7 +374,7 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 6)
+      if (print_counter == 16)
       {
 	//madAngles[0] = asin2f((float)sqrt(a_y[0]*a_y[0] + a_x[0]*a_x[0]),(float)a_z[0]);
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
@@ -446,9 +479,9 @@ long long *calibrate_gyr()
   ret[1] = ret[1]/1000;
   ret[2] = ret[2]/1000;
   printf("gyr calibration values: %lld,%lld,%lld\n", ret[0],ret[1],ret[2]);
-  ret[0] = -234;
-  ret[1] = -13;
-  ret[2] = -81;
+  //ret[0] = -234;
+  //ret[1] = -13;
+  //ret[2] = -81;
   return ret;
 }
 
@@ -687,4 +720,35 @@ void computeAngles()
   else if (y2 < 0.07 && y2 > -0.07 && x2 < 0.02 && x2 > -0.02 && x2 < 0)
       madAngles[2] = -1.570796;
   */
+}
+
+void changemode(int dir)
+{
+  static struct termios oldt, newt;
+ 
+  if ( dir == 1 )
+  {
+    tcgetattr( STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+  }
+  else
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
+}
+ 
+int kbhit (void)
+{
+  struct timeval tv;
+  fd_set rdfs;
+ 
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+ 
+  FD_ZERO(&rdfs);
+  FD_SET (STDIN_FILENO, &rdfs);
+ 
+  select(STDIN_FILENO+1, &rdfs, NULL, NULL, &tv);
+  return FD_ISSET(STDIN_FILENO, &rdfs);
+ 
 }
