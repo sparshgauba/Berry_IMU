@@ -24,8 +24,8 @@
 #define M_PI 3.14159265358979323846
 
 #define THRES_A 8000 // Raw Acc Noise Floor
-#define THRES_A_DELTA 40 //Acc Delta Floor
-#define THRES_G 40  // Raw Gyr Noise Floor
+#define THRES_A_DELTA 80 //Acc Delta Floor
+#define THRES_G 100  // Raw Gyr Noise Floor
 
 // System constants
 #define deltat 0.00413f // sampling period in seconds (shown as 25 ms)
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   int reorient = 0;
   int mag_init = 0;
   int mag_z_ref = 0;
-
+  int mag_x_ref = 0;
   signal(SIGINT, INThandler);
 
   detectIMU();
@@ -256,12 +256,13 @@ int main(int argc, char *argv[])
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
 
-      if (mag_init == 2 && magRaw[2] < mag_z_ref + 2 && magRaw[2] > mag_z_ref - 2 && a_y[0] > 16300)
+      if (mag_init == 2 &&  magRaw[2] < mag_z_ref + 10 && magRaw[2] > mag_z_ref - 10 &&
+	  magRaw[0] < mag_x_ref + 10 && magRaw[0] > mag_x_ref - 10 && a_y[0] > 16100)
       {
 	SEq_1 = SEq_1 - 0.01*(SEq_1 - 0.707);
 	SEq_2 = SEq_2 - 0.01*(SEq_2 + 0.707);
 	SEq_3 = SEq_3 - 0.01*SEq_3;
-	SEq_4 = SEq_4 - 0.01*SEq_4;;
+	SEq_4 = SEq_4 - 0.01*SEq_4;
 	//fprintf(stderr,"\t\t\t\t AUTOREORIENT\n"); 
       }
 
@@ -302,6 +303,7 @@ int main(int argc, char *argv[])
 	  fprintf(stderr, "\t\t\t   NEW REFERENCE TAKEN FOR ORIENTATION\n");
 	  mag_init = 2;
 	  mag_z_ref = magRaw[2];
+	  mag_x_ref = magRaw[0];
       }
 
       else if (melee_state == 0 && acc_norm[2] < -15000 && !gesture_melee)
@@ -378,6 +380,7 @@ int main(int argc, char *argv[])
       {
 	//madAngles[0] = asin2f((float)sqrt(a_y[0]*a_y[0] + a_x[0]*a_x[0]),(float)a_z[0]);
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
+	fprintf(stderr,"\t\t\t\t %5d     %5d           %5d     %5d          %5d\n",magRaw[2],mag_z_ref,magRaw[0],mag_x_ref,a_y[0]);
         gesture_melee = 0;
         gesture_reload = 0;
 	//fprintf(stderr,"%5d,%5d,%5d\n",magRaw[0],magRaw[1],magRaw[2]);
