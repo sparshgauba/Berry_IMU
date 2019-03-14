@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 	SEq_2 = SEq_2 - 0.01*(SEq_2 + 0.707);
 	SEq_3 = SEq_3 - 0.01*SEq_3;
 	SEq_4 = SEq_4 - 0.01*SEq_4;
-	//fprintf(stderr,"\t\t\t\t AUTOREORIENT\n"); 
+	//fprintf(stderr,"\t\t\t\t AUTOREORIENT\n");
       }
 
       changemode(1);
@@ -378,9 +378,9 @@ int main(int argc, char *argv[])
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
       if (print_counter == 16)
       {
-	//madAngles[0] = asin2f((float)sqrt(a_y[0]*a_y[0] + a_x[0]*a_x[0]),(float)a_z[0]);
+	madAngles[0] = madAngles[0] - 0.1*(madAngles[0] + atan2f(a_y[0],a_z[0]));
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
-	fprintf(stderr,"\t\t\t\t %5d     %5d           %5d     %5d          %5d\n",magRaw[2],mag_z_ref,magRaw[0],mag_x_ref,a_y[0]);
+	//fprintf(stderr,"\t\t\t\t %5d     %5d           %5d     %5d          %5d\n",magRaw[2],mag_z_ref,magRaw[0],mag_x_ref,a_y[0]);
         gesture_melee = 0;
         gesture_reload = 0;
 	//fprintf(stderr,"%5d,%5d,%5d\n",magRaw[0],magRaw[1],magRaw[2]);
