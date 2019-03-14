@@ -256,13 +256,13 @@ int main(int argc, char *argv[])
       acc_norm[1] = abs(acc_norm[1]) < THRES_A ? 0 : acc_norm[1];
       acc_norm[2] = abs(acc_norm[2]) < THRES_A ? 0 : acc_norm[2];
 
-      if (mag_init == 2 &&  magRaw[2] < mag_z_ref + 10 && magRaw[2] > mag_z_ref - 10 &&
-	  magRaw[0] < mag_x_ref + 10 && magRaw[0] > mag_x_ref - 10 && a_y[0] > 16100)
+      if (mag_init == 2 &&  magRaw[2] < mag_z_ref + 40 && magRaw[2] > mag_z_ref - 40 &&
+	  magRaw[0] < mag_x_ref + 180 && magRaw[0] > mag_x_ref - 180 && a_y[0] > 16000)
       {
-	SEq_1 = SEq_1 - 0.01*(SEq_1 - 0.707);
-	SEq_2 = SEq_2 - 0.01*(SEq_2 + 0.707);
-	SEq_3 = SEq_3 - 0.01*SEq_3;
-	SEq_4 = SEq_4 - 0.01*SEq_4;
+	SEq_1 = SEq_1 - 0.001*(SEq_1 - 0.707);
+	SEq_2 = SEq_2 - 0.001*(SEq_2 + 0.707);
+	SEq_3 = SEq_3 - 0.001*SEq_3;
+	SEq_4 = SEq_4 - 0.001*SEq_4;
 	//fprintf(stderr,"\t\t\t\t AUTOREORIENT\n");
       }
 
@@ -376,14 +376,15 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 16)
+      if (print_counter == 13)
       {
-	madAngles[0] = madAngles[0] - 0.1*(madAngles[0] + atan2f(a_y[0],a_z[0]));
+	madAngles[0] = madAngles[0] - 0.05*(madAngles[0] + atan2f(a_y[0],a_z[0]));
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
-	//fprintf(stderr,"\t\t\t\t %5d     %5d           %5d     %5d          %5d\n",magRaw[2],mag_z_ref,magRaw[0],mag_x_ref,a_y[0]);
+	fprintf(stderr,"\t\t\t\t %5d     %5d           %5d     %5d          %5d\n",magRaw[2],mag_z_ref,magRaw[0],mag_x_ref,a_y[0]);
         gesture_melee = 0;
         gesture_reload = 0;
 	//fprintf(stderr,"%5d,%5d,%5d\n",magRaw[0],magRaw[1],magRaw[2]);
+	//fprintf(stderr,"%5d,%5d,%5d\n",a_x[0],a_y[0],a_z[0]);
 	//fprintf(stderr,"%.3f,%.3f,%.3f\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
         //fprintf(stderr,"\t%5d,%5d,%5d\t", acc_norm[0], acc_norm[1], acc_norm[2]);
 	//fprintf(stderr,"\t\tM State: %d   M Timer: %d   M val: %d      R State: %d   R Timer: %d   R val: %d\n", melee_state, melee_timer, gesture_melee, reload_state, reload_timer, gesture_reload);
