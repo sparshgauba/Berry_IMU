@@ -27,7 +27,7 @@ def socket_create():
 def data_collect():
 	##Sending signals through Pi socket
 	PORT = 10000
-	SERVER_ADDRESS = "192.168.50.227"
+	SERVER_ADDRESS = "131.179.26.41"
 	ADDRESS = (SERVER_ADDRESS, PORT)
 	##Start sequence to establish connection
 	for _ in range(3):
@@ -40,7 +40,7 @@ def get_signal():
 	##Grabs cue from Unity to start or stop taking sensor data
 	while True:
 		data,addr = sensor_socket.recvfrom(4096)
-		#print (data.decode())
+		print (data.decode())
 		if data == "collect":
 			signal.set()
 		elif data == "stop":

@@ -15,7 +15,7 @@
 #include "quaternion.h"
 
 //#include <termios.h>
-#define DT 0.003         // [s/loop] loop period in sec
+#define DT 0.004         // [s/loop] loop period in sec
 #define AA 0.97         // complementary filter constant
 
 #define A_GAIN 0.0573    // [deg/LSB]
@@ -25,10 +25,10 @@
 
 #define THRES_A 8000 // Raw Acc Noise Floor
 #define THRES_A_DELTA 80 //Acc Delta Floor
-#define THRES_G 50  // Raw Gyr Noise Floor
+#define THRES_G 70  // Raw Gyr Noise Floor
 
 // System constants
-#define deltat 0.00306f // sampling period in seconds (shown as 25 ms)
+#define deltat 0.00413f // sampling period in seconds (shown as 25 ms)
 #define gyroMeasError 3.14159265358979f * (0.00f / 180.0f) // gyroscope measurement error in rad/s (shown as 5 deg/s)
 #define gyroMeasDrift 3.14159265358979f * (0.00f / 180.0f) // gyroscope measurement error in rad/s/s (shown as 0.2f deg/s/s)
 #define beta sqrt(3.0f / 4.0f) * gyroMeasError // compute beta
@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
 
 
       
-      if (reorient == 0 && (g_z < -15000 || g_z > 15000))
+      if (reorient == 0 && (g_z < -20000 || g_z > 20000))
       {
 	  //fprintf(stderr,"\t\t\t\tREORIENTATION IS RECALIBRATED\n");
 	  reorient = 1;
@@ -376,7 +376,7 @@ int main(int argc, char *argv[])
       //printf("\t%5d,%5d,%5d\n", acc_norm[0], acc_norm[1], acc_norm[2]);
 
       //fprintf(stdout,"Roll: %8.3f\t Pitch: %8.3f\t Yaw: %8.3f\t", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI);
-      if (print_counter == 14)
+      if (print_counter == 11)
       {
 	madAngles[0] = madAngles[0] - 0.05*(madAngles[0] + atan2f(a_y[0],a_z[0]));
       	fprintf(stdout,"%.3f,%.3f,%.3f,%d,%d\n", madAngles[0]*180/M_PI, madAngles[1]*180/M_PI, madAngles[2]*180/M_PI, gesture_melee, gesture_reload);
